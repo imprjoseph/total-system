@@ -1,0 +1,1908 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>imPR 企業整合入口平台</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔆</text></svg>">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+/* ══════════════════════════════════
+   DESIGN TOKENS
+══════════════════════════════════ */
+:root {
+  --o: #F47920;
+  --od: #d4620d;
+  --ol: rgba(244,121,32,0.12);
+  --ob: rgba(244,121,32,0.22);
+  --bg0: #090b11;
+  --bg1: #0f1118;
+  --bg2: #141720;
+  --bg3: #1a1e2b;
+  --bg4: #1f2436;
+  --bg5: #252a3d;
+  --bd: rgba(255,255,255,0.065);
+  --bd2: rgba(255,255,255,0.04);
+  --bdo: rgba(244,121,32,0.28);
+  --t1: #eceef5;
+  --t2: #7d8599;
+  --t3: #3f4557;
+  --green: #1db954;
+  --blue: #3b82f6;
+  --purple: #8b5cf6;
+  --yellow: #f59e0b;
+  --red: #ef4444;
+  --cyan: #06b6d4;
+  --r: 10px;
+  --r2: 14px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.4);
+  --shadow2: 0 12px 48px rgba(0,0,0,0.6);
+  --trans: all 0.22s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* ══════════════════════════════════
+   RESET & BASE
+══════════════════════════════════ */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Noto Sans TC',sans-serif;
+  background:var(--bg0);
+  color:var(--t1);
+  min-height:100vh;
+  font-size:14px;
+  overflow-x:hidden;
+}
+a{text-decoration:none;color:inherit}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+input,textarea,select{font-family:inherit}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg1)}
+::-webkit-scrollbar-thumb{background:var(--bg5);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:var(--t3)}
+
+/* ══════════════════════════════════
+   PAGE SYSTEM
+══════════════════════════════════ */
+.page{display:none}
+.page.active{display:flex}
+#loginPage{min-height:100vh;align-items:center;justify-content:center}
+#portalPage{flex-direction:column;min-height:100vh}
+#adminPage{flex-direction:column;min-height:100vh}
+
+/* ══════════════════════════════════
+   ── LOGIN PAGE ──
+══════════════════════════════════ */
+.login-bg{
+  position:fixed;inset:0;
+  background:
+    radial-gradient(ellipse 60% 50% at 15% 85%,rgba(244,121,32,0.1) 0%,transparent 60%),
+    radial-gradient(ellipse 40% 60% at 85% 15%,rgba(59,130,246,0.06) 0%,transparent 60%),
+    var(--bg0);
+  z-index:0;
+}
+.login-grid-bg{
+  position:fixed;inset:0;z-index:0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.025) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px);
+  background-size:40px 40px;
+  mask-image:radial-gradient(ellipse at center,rgba(0,0,0,0.5) 0%,transparent 70%);
+}
+.login-wrap{position:relative;z-index:1;width:100%;max-width:440px;padding:20px}
+.login-card{
+  background:rgba(20,23,32,0.95);
+  border:1px solid var(--bd);
+  border-radius:20px;
+  padding:44px 40px;
+  box-shadow:var(--shadow2),inset 0 1px 0 rgba(255,255,255,0.06);
+  backdrop-filter:blur(20px);
+}
+.lc-logo{display:flex;align-items:center;gap:14px;margin-bottom:36px}
+.lc-logo-mark{
+  background:var(--o);color:#fff;
+  font-family:'JetBrains Mono',monospace;
+  font-size:22px;font-weight:700;
+  padding:9px 16px;border-radius:10px;
+  letter-spacing:0.5px;
+  box-shadow:0 4px 16px rgba(244,121,32,0.35);
+}
+.lc-logo-text .cn{font-size:15px;font-weight:700;margin-bottom:2px}
+.lc-logo-text .en{font-size:10.5px;color:var(--t2);font-family:'JetBrains Mono',monospace}
+.lc-title{font-size:24px;font-weight:700;margin-bottom:6px}
+.lc-sub{font-size:13px;color:var(--t2);margin-bottom:32px}
+
+.form-group{margin-bottom:18px}
+.form-label{
+  display:block;font-size:12px;font-weight:600;
+  color:var(--t2);margin-bottom:8px;
+  letter-spacing:0.3px;text-transform:uppercase;
+}
+.form-input{
+  width:100%;padding:12px 16px;
+  background:var(--bg3);border:1px solid var(--bd);
+  border-radius:9px;color:var(--t1);font-size:14px;outline:none;
+  transition:var(--trans);
+}
+.form-input:focus{border-color:var(--o);box-shadow:0 0 0 3px rgba(244,121,32,0.12)}
+.form-input::placeholder{color:var(--t3)}
+
+.login-btn{
+  width:100%;padding:13px;
+  background:var(--o);color:#fff;
+  border-radius:10px;font-size:15px;font-weight:700;
+  margin-top:8px;transition:var(--trans);
+  box-shadow:0 4px 16px rgba(244,121,32,0.3);
+}
+.login-btn:hover{background:var(--od);transform:translateY(-1px);box-shadow:0 6px 20px rgba(244,121,32,0.4)}
+.login-btn:active{transform:none}
+.login-btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
+
+.login-error{
+  display:none;margin-top:14px;padding:11px 14px;
+  background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);
+  border-radius:8px;font-size:13px;color:#fca5a5;text-align:center;
+}
+.login-footer{text-align:center;margin-top:24px;font-size:12px;color:var(--t3)}
+.login-footer a{color:var(--o)}
+
+/* ══════════════════════════════════
+   ── PORTAL NAV ──
+══════════════════════════════════ */
+.portal-nav{
+  height:56px;
+  background:rgba(15,17,24,0.95);
+  border-bottom:1px solid var(--bd);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;
+  position:sticky;top:0;z-index:100;
+  backdrop-filter:blur(16px);
+  flex-shrink:0;
+}
+.nav-left{display:flex;align-items:center;gap:14px}
+.nav-logo{display:flex;align-items:center;gap:10px;cursor:pointer}
+.logo-pill{
+  background:var(--o);color:#fff;
+  font-family:'JetBrains Mono',monospace;
+  font-size:13px;font-weight:700;
+  padding:5px 11px;border-radius:7px;
+  letter-spacing:0.5px;
+}
+.nav-sep{width:1px;height:24px;background:var(--bd)}
+.nav-subtitle{font-size:13px;color:var(--t2);font-weight:500;white-space:nowrap}
+
+.nav-center{flex:1;max-width:360px;margin:0 20px}
+.search-bar{
+  display:flex;align-items:center;gap:9px;
+  background:var(--bg3);border:1px solid var(--bd);
+  border-radius:9px;padding:7px 13px;
+  cursor:pointer;transition:var(--trans);color:var(--t2);
+  font-size:13px;
+}
+.search-bar:hover{border-color:var(--bdo);background:var(--bg4)}
+.search-bar .kbd{
+  margin-left:auto;font-size:10px;color:var(--t3);
+  font-family:'JetBrains Mono',monospace;
+  background:var(--bg2);border:1px solid var(--bd);
+  padding:1px 5px;border-radius:4px;
+}
+
+.nav-right{display:flex;align-items:center;gap:8px}
+.nav-icon-btn{
+  width:34px;height:34px;border-radius:8px;
+  background:transparent;border:1px solid transparent;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--t2);font-size:17px;transition:var(--trans);
+  position:relative;
+}
+.nav-icon-btn:hover{background:var(--bg3);border-color:var(--bd);color:var(--t1)}
+.notif-count{
+  position:absolute;top:-3px;right:-3px;
+  width:16px;height:16px;border-radius:50%;
+  background:var(--o);color:#fff;
+  font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;
+  display:flex;align-items:center;justify-content:center;
+  border:2px solid var(--bg1);
+}
+.nav-avatar{
+  width:34px;height:34px;border-radius:50%;
+  background:linear-gradient(135deg,var(--o),#ff9800);
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;color:#fff;
+  cursor:pointer;border:2px solid var(--ob);
+  transition:var(--trans);
+}
+.nav-avatar:hover{border-color:var(--o)}
+
+/* ══════════════════════════════════
+   ── PORTAL BODY ──
+══════════════════════════════════ */
+.portal-body{display:flex;flex:1;min-height:0}
+
+.sidebar{
+  width:212px;flex-shrink:0;
+  background:var(--bg1);border-right:1px solid var(--bd);
+  padding:12px 8px 20px;
+  display:flex;flex-direction:column;gap:2px;
+  overflow-y:auto;
+}
+.sb-section{
+  font-size:10px;font-weight:700;color:var(--t3);
+  padding:10px 10px 4px;letter-spacing:0.9px;
+  text-transform:uppercase;font-family:'JetBrains Mono',monospace;
+}
+.sb-item{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 10px;border-radius:8px;
+  font-size:13px;color:var(--t2);
+  cursor:pointer;transition:var(--trans);
+  border:1px solid transparent;
+}
+.sb-item:hover{background:var(--bg3);color:var(--t1)}
+.sb-item.active{background:var(--ol);color:var(--o);border-color:var(--ob)}
+.sb-item .si{font-size:16px;width:20px;text-align:center;flex-shrink:0}
+.sb-badge{
+  margin-left:auto;background:var(--o);color:#fff;
+  font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;
+  font-family:'JetBrains Mono',monospace;
+}
+.sb-new{
+  margin-left:auto;background:rgba(34,197,94,0.2);color:var(--green);
+  font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;
+  font-family:'JetBrains Mono',monospace;border:1px solid rgba(34,197,94,0.3);
+}
+.sb-divider{height:1px;background:var(--bd);margin:6px 4px}
+.sb-spacer{flex:1}
+
+.main-content{flex:1;overflow-y:auto;padding:28px 28px 40px}
+
+/* ══════════════════════════════════
+   ── GREETING & KPI ──
+══════════════════════════════════ */
+.greeting-bar{
+  display:flex;align-items:flex-start;justify-content:space-between;
+  margin-bottom:24px;flex-wrap:wrap;gap:12px;
+}
+.greeting-text h1{font-size:20px;font-weight:700;margin-bottom:4px}
+.greeting-text p{font-size:13px;color:var(--t2)}
+.greeting-text .hl{color:var(--o)}
+.greeting-btns{display:flex;gap:8px;flex-wrap:wrap}
+
+.btn-primary{
+  display:flex;align-items:center;gap:6px;
+  background:var(--o);color:#fff;
+  padding:8px 16px;border-radius:8px;
+  font-size:13px;font-weight:600;transition:var(--trans);
+}
+.btn-primary:hover{background:var(--od)}
+.btn-ghost{
+  display:flex;align-items:center;gap:6px;
+  background:var(--bg3);color:var(--t2);
+  padding:8px 14px;border-radius:8px;
+  font-size:13px;font-weight:500;
+  border:1px solid var(--bd);transition:var(--trans);
+}
+.btn-ghost:hover{background:var(--bg4);color:var(--t1)}
+.btn-danger{
+  background:rgba(239,68,68,0.15);color:var(--red);
+  border:1px solid rgba(239,68,68,0.3);
+  padding:6px 12px;border-radius:7px;
+  font-size:12px;font-weight:600;transition:var(--trans);
+}
+.btn-danger:hover{background:rgba(239,68,68,0.25)}
+
+/* KPI */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px}
+.kpi{
+  background:var(--bg2);border:1px solid var(--bd);
+  border-radius:var(--r2);padding:18px 20px;
+  position:relative;overflow:hidden;transition:var(--trans);
+}
+.kpi:hover{border-color:var(--bdo)}
+.kpi-glow{
+  position:absolute;bottom:-30px;right:-30px;
+  width:90px;height:90px;border-radius:50%;
+  opacity:0.07;pointer-events:none;
+}
+.kpi-label{font-size:11.5px;color:var(--t2);margin-bottom:8px;font-weight:500}
+.kpi-val{
+  font-size:30px;font-weight:700;
+  font-family:'JetBrains Mono',monospace;
+  line-height:1;margin-bottom:6px;
+}
+.kpi-val.c-o{color:var(--o)}
+.kpi-val.c-g{color:var(--green)}
+.kpi-val.c-b{color:var(--blue)}
+.kpi-val.c-p{color:var(--purple)}
+.kpi-sub{font-size:11px;color:var(--t3)}
+.kpi-sub .up{color:var(--green)}
+
+/* ══════════════════════════════════
+   ── SECTION HEADER ──
+══════════════════════════════════ */
+.sh{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:14px;flex-wrap:wrap;gap:8px;
+}
+.sh h2{font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px}
+.sh-right{display:flex;align-items:center;gap:8px}
+.tab-group{display:flex;gap:3px}
+.tab{
+  padding:5px 12px;border-radius:6px;
+  font-size:12px;color:var(--t2);
+  cursor:pointer;transition:var(--trans);
+  border:1px solid transparent;
+}
+.tab:hover{background:var(--bg3)}
+.tab.active{background:var(--ol);color:var(--o);border-color:var(--ob)}
+.link-btn{font-size:12px;color:var(--o);cursor:pointer}
+.link-btn:hover{text-decoration:underline}
+
+/* ══════════════════════════════════
+   ── SYSTEM CARDS ──
+══════════════════════════════════ */
+.sys-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(195px,1fr));
+  gap:12px;margin-bottom:28px;
+}
+.sys-card{
+  background:var(--bg2);border:1px solid var(--bd);
+  border-radius:var(--r2);padding:18px;
+  cursor:pointer;transition:var(--trans);
+  position:relative;overflow:hidden;display:flex;flex-direction:column;
+}
+.sys-card::before{
+  content:'';position:absolute;inset:0;border-radius:var(--r2);
+  background:linear-gradient(135deg,transparent 60%,rgba(244,121,32,0.04));
+  opacity:0;transition:var(--trans);
+}
+.sys-card:hover{
+  border-color:var(--bdo);
+  transform:translateY(-3px);
+  box-shadow:0 10px 30px rgba(0,0,0,0.35);
+}
+.sys-card:hover::before{opacity:1}
+.sys-card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px}
+.sys-icon{
+  width:46px;height:46px;border-radius:11px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:24px;background:var(--bg4);border:1px solid var(--bd);
+  flex-shrink:0;
+}
+.star-btn{
+  width:28px;height:28px;border-radius:6px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;color:var(--t3);transition:var(--trans);
+}
+.star-btn:hover{color:var(--yellow)}
+.star-btn.fav{color:var(--yellow)}
+.sys-name{font-size:14px;font-weight:700;margin-bottom:5px;line-height:1.3}
+.sys-desc{font-size:11.5px;color:var(--t2);line-height:1.6;flex:1}
+.sys-footer{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-top:12px;padding-top:10px;border-top:1px solid var(--bd2);
+}
+.health{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--t3)}
+.hdot{
+  width:7px;height:7px;border-radius:50%;flex-shrink:0;
+}
+.hdot.online{background:var(--green);box-shadow:0 0 5px rgba(29,185,84,0.6)}
+.hdot.slow{background:var(--yellow);box-shadow:0 0 5px rgba(245,158,11,0.6)}
+.hdot.offline{background:var(--red);box-shadow:0 0 5px rgba(239,68,68,0.5)}
+.hdot.unknown{background:var(--t3)}
+@keyframes breathe{0%,100%{opacity:1}50%{opacity:0.4}}
+.hdot.online{animation:breathe 2.5s ease infinite}
+
+.type-tag{
+  font-size:10px;padding:2px 8px;border-radius:5px;
+  font-family:'JetBrains Mono',monospace;font-weight:600;
+}
+.tt-internal{background:rgba(244,121,32,0.15);color:var(--o)}
+.tt-external{background:rgba(107,114,128,0.15);color:#9ca3af}
+.tt-saas{background:rgba(59,130,246,0.15);color:var(--blue)}
+.tt-github{background:rgba(139,92,246,0.15);color:var(--purple)}
+.tt-nas{background:rgba(6,182,212,0.15);color:var(--cyan)}
+
+.empty-state{
+  grid-column:1/-1;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:60px 20px;color:var(--t3);gap:12px;
+}
+.empty-state .ei{font-size:40px;opacity:0.4}
+.empty-state p{font-size:13px}
+
+/* ══════════════════════════════════
+   ── TWO COLUMN ──
+══════════════════════════════════ */
+.two-col{display:grid;grid-template-columns:1fr 320px;gap:20px}
+
+/* ══════════════════════════════════
+   ── PANEL (announcements/recent) ──
+══════════════════════════════════ */
+.panel{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r2);overflow:hidden}
+.panel-hd{
+  padding:13px 18px;border-bottom:1px solid var(--bd);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.panel-hd h3{font-size:13px;font-weight:700}
+.ann-item{
+  padding:13px 18px;border-bottom:1px solid var(--bd2);
+  cursor:pointer;transition:background .15s;
+}
+.ann-item:hover{background:var(--bg3)}
+.ann-item:last-child{border-bottom:none}
+.ann-top{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.priority{
+  font-size:10px;padding:2px 7px;border-radius:4px;
+  font-weight:700;font-family:'JetBrains Mono',monospace;flex-shrink:0;
+}
+.p-urgent{background:rgba(239,68,68,0.2);color:var(--red)}
+.p-high{background:rgba(244,121,32,0.2);color:var(--o)}
+.p-normal{background:rgba(59,130,246,0.15);color:var(--blue)}
+.ann-title{font-size:13px;font-weight:600;line-height:1.3}
+.ann-meta{font-size:11px;color:var(--t3);font-family:'JetBrains Mono',monospace}
+.unread-pip{width:6px;height:6px;border-radius:50%;background:var(--o);flex-shrink:0;margin-left:auto}
+
+.recent-item{
+  padding:10px 18px;border-bottom:1px solid var(--bd2);
+  display:flex;align-items:center;gap:12px;
+  cursor:pointer;transition:background .15s;
+}
+.recent-item:hover{background:var(--bg3)}
+.recent-item:last-child{border-bottom:none}
+.ri-icon{font-size:20px;width:32px;text-align:center;flex-shrink:0}
+.ri-info{flex:1;min-width:0}
+.ri-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ri-time{font-size:11px;color:var(--t3);font-family:'JetBrains Mono',monospace}
+.ri-arrow{color:var(--t3);font-size:14px;flex-shrink:0}
+
+/* ══════════════════════════════════
+   ── SEARCH OVERLAY ──
+══════════════════════════════════ */
+.search-overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);
+  z-index:999;align-items:flex-start;justify-content:center;padding-top:100px;
+}
+.search-overlay.open{display:flex}
+.search-box{
+  background:var(--bg2);border:1px solid var(--bdo);
+  border-radius:16px;width:min(600px,95vw);overflow:hidden;
+  box-shadow:var(--shadow2);
+}
+.search-input-row{
+  display:flex;align-items:center;gap:12px;
+  padding:16px 20px;border-bottom:1px solid var(--bd);
+}
+.search-input-real{
+  flex:1;background:none;border:none;outline:none;
+  font-size:16px;color:var(--t1);font-family:'Noto Sans TC',sans-serif;
+}
+.search-result-item{
+  padding:12px 20px;display:flex;align-items:center;gap:12px;
+  cursor:pointer;transition:background .15s;font-size:13px;
+}
+.search-result-item:hover{background:var(--ol)}
+.search-result-item .sri-icon{font-size:20px;width:28px;text-align:center}
+.search-result-item .sri-name{font-weight:600;margin-bottom:2px}
+.search-result-item .sri-desc{font-size:11px;color:var(--t2)}
+.search-hint{padding:12px 20px;font-size:11.5px;color:var(--t3);text-align:center;font-family:'JetBrains Mono',monospace}
+
+/* ══════════════════════════════════
+   ── ADMIN PAGE ──
+══════════════════════════════════ */
+.admin-nav{
+  height:56px;background:rgba(15,17,24,0.97);
+  border-bottom:1px solid rgba(239,68,68,0.2);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;flex-shrink:0;backdrop-filter:blur(16px);
+  position:sticky;top:0;z-index:100;
+}
+.admin-title{
+  display:flex;align-items:center;gap:12px;font-size:14px;font-weight:700;
+}
+.admin-badge{
+  background:rgba(239,68,68,0.2);color:var(--red);
+  border:1px solid rgba(239,68,68,0.4);
+  padding:3px 10px;border-radius:6px;font-size:11px;font-weight:700;
+  font-family:'JetBrains Mono',monospace;
+}
+
+.admin-body{display:flex;flex:1;min-height:0}
+.admin-sidebar{
+  width:200px;flex-shrink:0;background:var(--bg1);
+  border-right:1px solid var(--bd);padding:12px 8px;
+  display:flex;flex-direction:column;gap:2px;
+}
+.admin-main{flex:1;overflow-y:auto;padding:28px}
+
+/* Admin tabs */
+.admin-panel{display:none}
+.admin-panel.active{display:block}
+
+.data-table-wrap{overflow-x:auto;border-radius:var(--r2);border:1px solid var(--bd)}
+.data-table{width:100%;border-collapse:collapse;font-size:13px}
+.data-table th{
+  text-align:left;padding:11px 14px;
+  background:var(--bg3);border-bottom:1px solid var(--bd);
+  font-size:11px;font-weight:700;color:var(--o);
+  white-space:nowrap;font-family:'JetBrains Mono',monospace;
+}
+.data-table td{
+  padding:10px 14px;border-bottom:1px solid var(--bd2);
+  color:var(--t2);vertical-align:middle;
+}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tr:hover td{background:rgba(255,255,255,0.02);color:var(--t1)}
+.role-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;
+  font-family:'JetBrains Mono',monospace;
+}
+.rb-admin{background:rgba(239,68,68,0.15);color:var(--red)}
+.rb-manager{background:rgba(244,121,32,0.15);color:var(--o)}
+.rb-staff{background:rgba(59,130,246,0.12);color:var(--blue)}
+.status-pill{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:3px 9px;border-radius:20px;font-size:11px;
+  font-family:'JetBrains Mono',monospace;
+}
+.sp-on{background:rgba(29,185,84,0.15);color:var(--green)}
+.sp-off{background:rgba(107,114,128,0.12);color:var(--t2)}
+
+.action-group{display:flex;gap:6px}
+.act-btn{
+  padding:5px 10px;border-radius:6px;font-size:11.5px;font-weight:600;
+  transition:var(--trans);cursor:pointer;border:1px solid transparent;
+}
+.ab-edit{background:rgba(59,130,246,0.12);color:var(--blue);border-color:rgba(59,130,246,0.25)}
+.ab-edit:hover{background:rgba(59,130,246,0.22)}
+.ab-del{background:rgba(239,68,68,0.1);color:var(--red);border-color:rgba(239,68,68,0.25)}
+.ab-del:hover{background:rgba(239,68,68,0.2)}
+.ab-toggle{background:rgba(244,121,32,0.1);color:var(--o);border-color:rgba(244,121,32,0.25)}
+.ab-toggle:hover{background:rgba(244,121,32,0.2)}
+
+/* ══════════════════════════════════
+   ── MODAL ──
+══════════════════════════════════ */
+.modal-overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);
+  z-index:200;align-items:center;justify-content:center;padding:20px;
+}
+.modal-overlay.open{display:flex}
+.modal{
+  background:var(--bg2);border:1px solid var(--bd);
+  border-radius:16px;width:min(520px,100%);
+  max-height:85vh;overflow-y:auto;
+  box-shadow:var(--shadow2);
+}
+.modal-hd{
+  padding:20px 24px 16px;border-bottom:1px solid var(--bd);
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;background:var(--bg2);z-index:1;
+}
+.modal-hd h3{font-size:16px;font-weight:700}
+.modal-close{
+  width:30px;height:30px;border-radius:7px;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--bg4);color:var(--t2);font-size:18px;
+  cursor:pointer;transition:var(--trans);
+}
+.modal-close:hover{background:var(--bg5);color:var(--t1)}
+.modal-body{padding:24px}
+.modal-footer{
+  padding:16px 24px;border-top:1px solid var(--bd);
+  display:flex;gap:10px;justify-content:flex-end;
+  position:sticky;bottom:0;background:var(--bg2);
+}
+
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-select{
+  width:100%;padding:10px 14px;
+  background:var(--bg3);border:1px solid var(--bd);
+  border-radius:9px;color:var(--t1);font-size:14px;outline:none;
+  transition:var(--trans);
+}
+.form-select:focus{border-color:var(--o)}
+.form-textarea{
+  width:100%;padding:10px 14px;min-height:80px;resize:vertical;
+  background:var(--bg3);border:1px solid var(--bd);
+  border-radius:9px;color:var(--t1);font-size:13px;outline:none;
+  transition:var(--trans);
+}
+.form-textarea:focus{border-color:var(--o)}
+.form-hint{font-size:11px;color:var(--t3);margin-top:5px}
+
+/* ══════════════════════════════════
+   ── TOAST ──
+══════════════════════════════════ */
+.toast-container{
+  position:fixed;bottom:24px;right:24px;
+  z-index:999;display:flex;flex-direction:column;gap:8px;
+  pointer-events:none;
+}
+.toast{
+  background:var(--bg3);border:1px solid var(--bd);
+  border-radius:10px;padding:12px 18px;
+  font-size:13px;box-shadow:var(--shadow);
+  display:flex;align-items:center;gap:10px;
+  pointer-events:all;min-width:240px;
+  animation:slideUp .3s ease;
+}
+.toast.success{border-color:rgba(29,185,84,0.4);background:rgba(29,185,84,0.1)}
+.toast.error{border-color:rgba(239,68,68,0.4);background:rgba(239,68,68,0.1)}
+.toast.info{border-color:var(--bdo);background:var(--ol)}
+@keyframes slideUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* ══════════════════════════════════
+   ── LOADER ──
+══════════════════════════════════ */
+.loader{
+  display:none;position:fixed;inset:0;
+  background:rgba(9,11,17,0.9);backdrop-filter:blur(4px);
+  z-index:9999;align-items:center;justify-content:center;
+  flex-direction:column;gap:16px;
+}
+.loader.show{display:flex}
+.spinner{
+  width:40px;height:40px;border-radius:50%;
+  border:3px solid var(--bg5);
+  border-top-color:var(--o);
+  animation:spin .8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loader p{font-size:13px;color:var(--t2)}
+
+/* ══════════════════════════════════
+   ── RESPONSIVE ──
+══════════════════════════════════ */
+@media(max-width:900px){
+  .two-col{grid-template-columns:1fr}
+  .kpi-row{grid-template-columns:1fr 1fr}
+  .sidebar{display:none}
+  .nav-center{display:none}
+}
+@media(max-width:600px){
+  .kpi-row{grid-template-columns:1fr 1fr}
+  .sys-grid{grid-template-columns:1fr 1fr}
+  .main-content{padding:16px}
+  .greeting-bar{flex-direction:column}
+}
+
+/* ══════════════════════════════════
+   ── ANIMATIONS ──
+══════════════════════════════════ */
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.sys-card{animation:fadeUp .3s ease both}
+.sys-card:nth-child(1){animation-delay:.04s}
+.sys-card:nth-child(2){animation-delay:.08s}
+.sys-card:nth-child(3){animation-delay:.12s}
+.sys-card:nth-child(4){animation-delay:.16s}
+.sys-card:nth-child(5){animation-delay:.20s}
+.sys-card:nth-child(6){animation-delay:.24s}
+.sys-card:nth-child(7){animation-delay:.28s}
+.sys-card:nth-child(8){animation-delay:.32s}
+.kpi{animation:fadeUp .35s ease both}
+.kpi:nth-child(1){animation-delay:.05s}
+.kpi:nth-child(2){animation-delay:.1s}
+.kpi:nth-child(3){animation-delay:.15s}
+.kpi:nth-child(4){animation-delay:.2s}
+</style>
+</head>
+<body>
+
+<!-- ══ LOADER ══ -->
+<div class="loader" id="loader">
+  <div class="spinner"></div>
+  <p>載入中...</p>
+</div>
+
+<!-- ══ TOASTS ══ -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- ══════════════════════════════════
+     LOGIN PAGE
+══════════════════════════════════ -->
+<div class="page" id="loginPage">
+  <div class="login-bg"></div>
+  <div class="login-grid-bg"></div>
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="lc-logo">
+        <div class="lc-logo-mark">imPR</div>
+        <div class="lc-logo-text">
+          <div class="cn">新動力公共關係顧問股份有限公司</div>
+          <div class="en">Impetus Public Relations Consultants Co., Ltd.</div>
+        </div>
+      </div>
+      <div class="lc-title">歡迎回來 👋</div>
+      <div class="lc-sub">請登入以存取 imPR 企業整合入口平台</div>
+      <div class="form-group">
+        <label class="form-label">工作 Email</label>
+        <input class="form-input" id="loginEmail" type="email" placeholder="yourname@impr.com.tw" autocomplete="email"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">密碼</label>
+        <input class="form-input" id="loginPassword" type="password" placeholder="••••••••" autocomplete="current-password"/>
+      </div>
+      <button class="login-btn" id="loginBtn" onclick="doLogin()">登入 Portal</button>
+      <div class="login-error" id="loginError"></div>
+      <div class="login-footer">忘記密碼？請聯繫 <a href="#">系統管理員</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     PORTAL PAGE
+══════════════════════════════════ -->
+<div class="page" id="portalPage">
+  <!-- NAV -->
+  <nav class="portal-nav">
+    <div class="nav-left">
+      <div class="nav-logo" onclick="showPortal()">
+        <div class="logo-pill">imPR</div>
+      </div>
+      <div class="nav-sep"></div>
+      <div class="nav-subtitle">企業整合入口平台</div>
+    </div>
+    <div class="nav-center">
+      <div class="search-bar" onclick="openSearch()">
+        <span>🔍</span>
+        <span>搜尋系統功能...</span>
+        <span class="kbd">⌘K</span>
+      </div>
+    </div>
+    <div class="nav-right">
+      <div class="nav-icon-btn" id="notifBtn" title="公告通知">
+        🔔<span class="notif-count" id="notifCount" style="display:none">0</span>
+      </div>
+      <div class="nav-icon-btn" title="設定" onclick="showAdmin()" id="adminBtn" style="display:none">⚙️</div>
+      <div class="nav-avatar" id="navAvatar" title="個人資訊" onclick="showProfile()">U</div>
+    </div>
+  </nav>
+
+  <!-- BODY -->
+  <div class="portal-body">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sb-section">主選單</div>
+      <div class="sb-item active" onclick="filterSystems('all', this)">
+        <span class="si">🏠</span>全部系統
+      </div>
+      <div class="sb-item" onclick="filterSystems('favorite', this)">
+        <span class="si">⭐</span>我的收藏
+      </div>
+      <div class="sb-item" onclick="showRecentFull()">
+        <span class="si">🕐</span>最近使用
+      </div>
+      <div class="sb-divider"></div>
+      <div class="sb-section">系統分類</div>
+      <div id="catSidebar"></div>
+      <div class="sb-divider"></div>
+      <div class="sb-section">管理</div>
+      <div class="sb-item" id="sbAdmin" style="display:none" onclick="showAdmin()">
+        <span class="si">🛡️</span>後台管理
+      </div>
+      <div class="sb-item" onclick="showStats()">
+        <span class="si">📊</span>使用統計
+      </div>
+      <div class="sb-spacer"></div>
+      <div class="sb-item" onclick="doLogout()" style="color:var(--t3)">
+        <span class="si">🚪</span>登出
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main-content" id="mainContent">
+      <!-- Greeting -->
+      <div class="greeting-bar">
+        <div class="greeting-text">
+          <h1>你好，<span class="hl" id="greetName">載入中</span> <span id="greetEmoji">👋</span></h1>
+          <p id="greetSub">今天是 <span id="todayDate"></span></p>
+        </div>
+        <div class="greeting-btns">
+          <button class="btn-ghost" onclick="openSearch()">🔍 搜尋系統</button>
+          <button class="btn-primary" id="addSystemBtn" style="display:none" onclick="openSystemModal()">＋ 新增系統</button>
+        </div>
+      </div>
+
+      <!-- KPI -->
+      <div class="kpi-row" id="kpiRow">
+        <div class="kpi">
+          <div class="kpi-glow" style="background:var(--o)"></div>
+          <div class="kpi-label">可用系統</div>
+          <div class="kpi-val c-o" id="kpiSystems">—</div>
+          <div class="kpi-sub"><span class="up" id="kpiOnline">— 正常</span></div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-glow" style="background:var(--green)"></div>
+          <div class="kpi-label">本月存取</div>
+          <div class="kpi-val c-g" id="kpiAccess">—</div>
+          <div class="kpi-sub">點擊次數</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-glow" style="background:var(--blue)"></div>
+          <div class="kpi-label">收藏系統</div>
+          <div class="kpi-val c-b" id="kpiFavs">—</div>
+          <div class="kpi-sub">快速存取</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-glow" style="background:var(--purple)"></div>
+          <div class="kpi-label">未讀公告</div>
+          <div class="kpi-val c-p" id="kpiAnns">—</div>
+          <div class="kpi-sub">請查閱</div>
+        </div>
+      </div>
+
+      <!-- Systems -->
+      <div class="sh">
+        <h2>🔧 系統入口</h2>
+        <div class="sh-right">
+          <div class="tab-group" id="typeTabs">
+            <div class="tab active" onclick="filterType('all',this)">全部</div>
+            <div class="tab" onclick="filterType('internal',this)">內部</div>
+            <div class="tab" onclick="filterType('saas',this)">SaaS</div>
+            <div class="tab" onclick="filterType('external',this)">外部</div>
+          </div>
+        </div>
+      </div>
+      <div class="sys-grid" id="sysGrid"></div>
+
+      <!-- Two col -->
+      <div class="two-col">
+        <div>
+          <div class="sh"><h2>📢 公告中心</h2><span class="link-btn" onclick="openAnnsModal()">全部 →</span></div>
+          <div class="panel" id="annPanel"></div>
+        </div>
+        <div>
+          <div class="sh"><h2>🕐 最近使用</h2></div>
+          <div class="panel" id="recentPanel"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     ADMIN PAGE
+══════════════════════════════════ -->
+<div class="page" id="adminPage">
+  <nav class="admin-nav">
+    <div class="admin-title">
+      <span class="logo-pill" style="cursor:pointer" onclick="showPortal()">imPR</span>
+      <span class="admin-badge">ADMIN</span>
+      <span style="color:var(--t2)">後台管理系統</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <button class="btn-ghost" onclick="showPortal()">← 返回 Portal</button>
+      <div class="nav-avatar" id="adminAvatar">A</div>
+    </div>
+  </nav>
+  <div class="admin-body">
+    <aside class="admin-sidebar">
+      <div class="sb-section">管理模組</div>
+      <div class="sb-item active" onclick="switchAdmin('systems',this)"><span class="si">🔧</span>系統管理</div>
+      <div class="sb-item" onclick="switchAdmin('users',this)"><span class="si">👥</span>使用者</div>
+      <div class="sb-item" onclick="switchAdmin('announcements',this)"><span class="si">📢</span>公告管理</div>
+      <div class="sb-item" onclick="switchAdmin('categories',this)"><span class="si">🗂️</span>分類管理</div>
+      <div class="sb-item" onclick="switchAdmin('stats',this)"><span class="si">📊</span>統計報表</div>
+    </aside>
+    <main class="admin-main">
+      <!-- Systems Panel -->
+      <div class="admin-panel active" id="adminSystems">
+        <div class="sh"><h2>🔧 系統入口管理</h2><button class="btn-primary" onclick="openSystemModal()">＋ 新增系統</button></div>
+        <div class="data-table-wrap"><table class="data-table" id="systemsTable">
+          <thead><tr><th>圖示</th><th>名稱</th><th>類型</th><th>分類</th><th>狀態</th><th>健康</th><th>操作</th></tr></thead>
+          <tbody id="systemsTableBody"></tbody>
+        </table></div>
+      </div>
+      <!-- Users Panel -->
+      <div class="admin-panel" id="adminUsers">
+        <div class="sh"><h2>👥 使用者管理</h2><button class="btn-primary" onclick="openUserModal()">＋ 新增使用者</button></div>
+        <div class="data-table-wrap"><table class="data-table">
+          <thead><tr><th>姓名</th><th>Email</th><th>角色</th><th>部門</th><th>狀態</th><th>最後登入</th><th>操作</th></tr></thead>
+          <tbody id="usersTableBody"></tbody>
+        </table></div>
+      </div>
+      <!-- Announcements Panel -->
+      <div class="admin-panel" id="adminAnnouncements">
+        <div class="sh"><h2>📢 公告管理</h2><button class="btn-primary" onclick="openAnnModal()">＋ 新增公告</button></div>
+        <div class="data-table-wrap"><table class="data-table">
+          <thead><tr><th>標題</th><th>優先</th><th>對象</th><th>狀態</th><th>建立時間</th><th>操作</th></tr></thead>
+          <tbody id="annsTableBody"></tbody>
+        </table></div>
+      </div>
+      <!-- Categories Panel -->
+      <div class="admin-panel" id="adminCategories">
+        <div class="sh"><h2>🗂️ 分類管理</h2><button class="btn-primary" onclick="openCatModal()">＋ 新增分類</button></div>
+        <div class="data-table-wrap"><table class="data-table">
+          <thead><tr><th>圖示</th><th>名稱</th><th>顏色</th><th>排序</th><th>操作</th></tr></thead>
+          <tbody id="catsTableBody"></tbody>
+        </table></div>
+      </div>
+      <!-- Stats Panel -->
+      <div class="admin-panel" id="adminStats">
+        <h2 style="margin-bottom:20px">📊 使用統計</h2>
+        <div class="kpi-row" id="adminKpiRow" style="margin-bottom:28px"></div>
+        <div class="sh"><h2>🔥 熱門系統 Top 10</h2></div>
+        <div class="panel" id="popularPanel"></div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     MODALS
+══════════════════════════════════ -->
+<!-- System Modal -->
+<div class="modal-overlay" id="systemModal">
+  <div class="modal">
+    <div class="modal-hd">
+      <h3 id="systemModalTitle">新增系統入口</h3>
+      <div class="modal-close" onclick="closeModal('systemModal')">×</div>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="sysId"/>
+      <div class="form-group">
+        <label class="form-label">系統名稱 *</label>
+        <input class="form-input" id="sysName" placeholder="例：MCS 專案系統"/>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">圖示 Emoji</label>
+          <input class="form-input" id="sysIcon" placeholder="📋" maxlength="2"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">系統類型</label>
+          <select class="form-select" id="sysType">
+            <option value="internal">內部系統</option>
+            <option value="external">外部網站</option>
+            <option value="saas">SaaS</option>
+            <option value="github">GitHub Pages</option>
+            <option value="nas">NAS</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">系統網址 *</label>
+        <input class="form-input" id="sysUrl" placeholder="https://"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">系統簡介</label>
+        <textarea class="form-textarea" id="sysDesc" placeholder="簡短描述系統功能..."></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">開啟方式</label>
+          <select class="form-select" id="sysOpenMode">
+            <option value="new_tab">新分頁開啟</option>
+            <option value="redirect">直接跳轉</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">分類</label>
+          <select class="form-select" id="sysCat"></select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">可見角色（逗號分隔）</label>
+        <input class="form-input" id="sysRoles" placeholder="admin,manager,staff" value="admin,manager,staff"/>
+        <div class="form-hint">可填: admin / manager / staff，多個用逗號分隔</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">健康檢查網址（選填）</label>
+        <input class="form-input" id="sysHealthUrl" placeholder="留空則使用系統網址"/>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal('systemModal')">取消</button>
+      <button class="btn-primary" onclick="saveSystem()">💾 儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- User Modal -->
+<div class="modal-overlay" id="userModal">
+  <div class="modal">
+    <div class="modal-hd">
+      <h3 id="userModalTitle">新增使用者</h3>
+      <div class="modal-close" onclick="closeModal('userModal')">×</div>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="userId"/>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">姓名 *</label>
+          <input class="form-input" id="userName" placeholder="王小明"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">部門</label>
+          <input class="form-input" id="userDept" placeholder="企劃部"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email *</label>
+        <input class="form-input" id="userEmail" type="email" placeholder="user@impr.com.tw"/>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">角色</label>
+          <select class="form-select" id="userRole">
+            <option value="staff">Staff（員工）</option>
+            <option value="manager">Manager（主管）</option>
+            <option value="admin">Admin（管理員）</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">狀態</label>
+          <select class="form-select" id="userActive">
+            <option value="TRUE">啟用</option>
+            <option value="FALSE">停用</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group" id="passwordGroup">
+        <label class="form-label">密碼 *</label>
+        <input class="form-input" id="userPassword" type="password" placeholder="至少 6 個字元"/>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal('userModal')">取消</button>
+      <button class="btn-primary" onclick="saveUser()">💾 儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Announcement Modal -->
+<div class="modal-overlay" id="annModal">
+  <div class="modal">
+    <div class="modal-hd">
+      <h3 id="annModalTitle">新增公告</h3>
+      <div class="modal-close" onclick="closeModal('annModal')">×</div>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="annId"/>
+      <div class="form-group">
+        <label class="form-label">公告標題 *</label>
+        <input class="form-input" id="annTitle" placeholder="公告標題..."/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">內容 *</label>
+        <textarea class="form-textarea" id="annContent" placeholder="公告內容..." style="min-height:120px"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">優先層級</label>
+          <select class="form-select" id="annPriority">
+            <option value="normal">一般</option>
+            <option value="high">重要</option>
+            <option value="urgent">緊急</option>
+            <option value="low">低</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">顯示狀態</label>
+          <select class="form-select" id="annPublished">
+            <option value="TRUE">立即發佈</option>
+            <option value="FALSE">草稿</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">目標對象</label>
+        <input class="form-input" id="annRoles" value="admin,manager,staff" placeholder="admin,manager,staff"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">到期時間（選填）</label>
+        <input class="form-input" id="annExpire" type="datetime-local"/>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal('annModal')">取消</button>
+      <button class="btn-primary" onclick="saveAnnouncement()">💾 儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Category Modal -->
+<div class="modal-overlay" id="catModal">
+  <div class="modal">
+    <div class="modal-hd">
+      <h3>新增分類</h3>
+      <div class="modal-close" onclick="closeModal('catModal')">×</div>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="catId"/>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">分類名稱 *</label>
+          <input class="form-input" id="catName" placeholder="分類名稱"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">圖示 Emoji</label>
+          <input class="form-input" id="catIcon" placeholder="🗂️" maxlength="2"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">代表顏色</label>
+        <input class="form-input" id="catColor" type="color" value="#F47920" style="height:42px;cursor:pointer"/>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal('catModal')">取消</button>
+      <button class="btn-primary" onclick="saveCategory()">💾 儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Search Overlay -->
+<div class="search-overlay" id="searchOverlay" onclick="closeSearchOverlay(event)">
+  <div class="search-box">
+    <div class="search-input-row">
+      <span style="font-size:18px;color:var(--t2)">🔍</span>
+      <input class="search-input-real" id="searchInput" placeholder="搜尋系統名稱或功能..." oninput="onSearch(this.value)"/>
+      <span style="font-size:11px;color:var(--t3);font-family:'JetBrains Mono',monospace">ESC</span>
+    </div>
+    <div id="searchResults"></div>
+    <div class="search-hint">輸入關鍵字搜尋所有可用系統</div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════
+// CONFIG — 部署後請修改
+// ════════════════════════════════════════════════════════════
+const GAS_URL = 'YOUR_GAS_WEB_APP_URL_HERE';
+
+// ════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════
+let currentUser = null;
+let allSystems = [];
+let allCategories = [];
+let allAnnouncements = [];
+let myFavorites = [];
+let recentAccess = [];
+let currentFilter = 'all';
+let currentTypeFilter = 'all';
+
+// ════════════════════════════════════════════════════════════
+// API LAYER
+// ════════════════════════════════════════════════════════════
+function getToken() { return localStorage.getItem('impr_token'); }
+function setToken(t) { localStorage.setItem('impr_token', t); }
+function clearAuth() {
+  localStorage.removeItem('impr_token');
+  localStorage.removeItem('impr_user');
+  localStorage.removeItem('impr_token_expires');
+  currentUser = null;
+}
+
+async function gasRequest(path, method='GET', body=null) {
+  const token = getToken();
+  const params = new URLSearchParams({ path });
+  if (method==='GET' && token) params.append('token', token);
+  const url = `${GAS_URL}?${params}`;
+  const opts = {};
+  if (method==='POST') {
+    const payload = body ? {...body} : {};
+    if (token) payload.token = token;
+    opts.method = 'POST';
+    opts.headers = {'Content-Type':'text/plain;charset=utf-8'};
+    opts.body = JSON.stringify(payload);
+  }
+  const res = await fetch(url, opts);
+  return res.json();
+}
+
+// ════════════════════════════════════════════════════════════
+// AUTH
+// ════════════════════════════════════════════════════════════
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const errEl = document.getElementById('loginError');
+  const btn = document.getElementById('loginBtn');
+  errEl.style.display='none';
+  if (!email || !password) { showLoginError('請填入 Email 與密碼'); return; }
+  btn.disabled=true; btn.textContent='登入中...';
+  try {
+    const res = await gasRequest('auth/login','POST',{email,password});
+    if (res.success) {
+      setToken(res.token);
+      localStorage.setItem('impr_user', JSON.stringify(res.user));
+      localStorage.setItem('impr_token_expires', res.expiresAt);
+      currentUser = res.user;
+      await initPortal();
+    } else {
+      showLoginError(res.error || '登入失敗');
+    }
+  } catch(e) {
+    showLoginError('無法連線至伺服器，請確認設定');
+  } finally {
+    btn.disabled=false; btn.textContent='登入 Portal';
+  }
+}
+
+function showLoginError(msg) {
+  const el = document.getElementById('loginError');
+  el.textContent = msg; el.style.display='block';
+}
+
+async function doLogout() {
+  showLoader();
+  try { await gasRequest('auth/logout','POST'); } catch{}
+  clearAuth();
+  showPage('loginPage');
+  hideLoader();
+}
+
+// ════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════
+async function initPortal() {
+  showLoader();
+  try {
+    // 並行載入資料
+    const [sysRes, catRes, annRes, favRes] = await Promise.all([
+      gasRequest('systems','GET'),
+      gasRequest('categories','GET'),
+      gasRequest('announcements','GET'),
+      gasRequest('favorites','GET'),
+    ]);
+
+    allSystems = sysRes.data || [];
+    allCategories = catRes.data || [];
+    allAnnouncements = annRes.data || [];
+    myFavorites = favRes.data || [];
+
+    // 載入最近使用
+    recentAccess = JSON.parse(localStorage.getItem('impr_recent') || '[]');
+
+    renderPortal();
+    showPage('portalPage');
+  } catch(e) {
+    toast('載入資料失敗: ' + e.message, 'error');
+    showPage('loginPage');
+  } finally {
+    hideLoader();
+  }
+}
+
+function renderPortal() {
+  // 更新 UI 角色相關
+  const user = currentUser;
+  document.getElementById('greetName').textContent = user.name;
+  document.getElementById('greetEmoji').textContent = getTimeEmoji();
+  document.getElementById('todayDate').textContent = formatDate(new Date());
+  const initial = user.name.charAt(0).toUpperCase();
+  document.getElementById('navAvatar').textContent = initial;
+  document.getElementById('adminAvatar').textContent = initial;
+
+  if (user.role === 'admin' || user.role === 'manager') {
+    document.getElementById('adminBtn').style.display = 'flex';
+    document.getElementById('sbAdmin').style.display = 'flex';
+    document.getElementById('addSystemBtn').style.display = user.role === 'admin' ? 'flex' : 'none';
+  }
+
+  // Render sidebar cats
+  const catSb = document.getElementById('catSidebar');
+  catSb.innerHTML = allCategories.map(c =>
+    `<div class="sb-item" onclick="filterSystems('cat_${c.id}',this)">
+      <span class="si">${c.icon}</span>${c.name}
+    </div>`
+  ).join('');
+
+  // KPI
+  const onlineCount = allSystems.filter(s=>s.health_status==='online').length;
+  document.getElementById('kpiSystems').textContent = allSystems.length;
+  document.getElementById('kpiOnline').textContent = `🟢 ${onlineCount} 正常`;
+  document.getElementById('kpiFavs').textContent = myFavorites.length;
+  document.getElementById('kpiAnns').textContent = allAnnouncements.length;
+
+  renderSystems();
+  renderAnnouncements();
+  renderRecent();
+}
+
+// ════════════════════════════════════════════════════════════
+// SYSTEMS RENDER
+// ════════════════════════════════════════════════════════════
+function renderSystems() {
+  let filtered = [...allSystems];
+
+  if (currentFilter === 'favorite') {
+    filtered = filtered.filter(s => myFavorites.includes(s.id));
+  } else if (currentFilter.startsWith('cat_')) {
+    const catId = currentFilter.replace('cat_','');
+    filtered = filtered.filter(s => s.category_id === catId);
+  }
+
+  if (currentTypeFilter !== 'all') {
+    filtered = filtered.filter(s => s.system_type === currentTypeFilter);
+  }
+
+  const grid = document.getElementById('sysGrid');
+  if (filtered.length === 0) {
+    grid.innerHTML = `<div class="empty-state"><div class="ei">🔍</div><p>沒有符合的系統</p></div>`;
+    return;
+  }
+
+  grid.innerHTML = filtered.map(s => {
+    const isFav = myFavorites.includes(s.id);
+    const healthClass = s.health_status || 'unknown';
+    const healthLabel = {online:'正常',slow:'緩慢',offline:'離線',unknown:'未知'}[healthClass] || '未知';
+    const typeClass = `tt-${s.system_type || 'external'}`;
+    const typeLabel = {internal:'內部',external:'外部',saas:'SaaS',github:'GitHub',nas:'NAS'}[s.system_type] || s.system_type;
+    const rt = s.response_time_ms ? ` ${s.response_time_ms}ms` : '';
+    return `
+    <div class="sys-card" onclick="openSystem('${s.id}','${escHtml(s.url)}','${s.open_mode||'new_tab'}')">
+      <div class="sys-card-top">
+        <div class="sys-icon">${s.icon_emoji||'🔗'}</div>
+        <button class="star-btn ${isFav?'fav':''}" onclick="toggleFav(event,'${s.id}')">${isFav?'★':'☆'}</button>
+      </div>
+      <div class="sys-name">${escHtml(s.name)}</div>
+      <div class="sys-desc">${escHtml(s.description||'')}</div>
+      <div class="sys-footer">
+        <div class="health"><span class="hdot ${healthClass}"></span>${healthLabel}${rt}</div>
+        <span class="type-tag ${typeClass}">${typeLabel}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function openSystem(id, url, openMode) {
+  // 記錄存取
+  try { await gasRequest('analytics/access','POST',{system_id:id}); } catch{}
+  // 更新本地最近使用
+  const sys = allSystems.find(s=>s.id===id);
+  if (sys) {
+    recentAccess = [sys,...recentAccess.filter(r=>r.id!==id)].slice(0,10);
+    localStorage.setItem('impr_recent', JSON.stringify(recentAccess));
+    renderRecent();
+  }
+  window.open(url, '_blank');
+}
+
+async function toggleFav(e, id) {
+  e.stopPropagation();
+  const isFav = myFavorites.includes(id);
+  if (isFav) {
+    await gasRequest('favorites/remove','POST',{system_id:id});
+    myFavorites = myFavorites.filter(f=>f!==id);
+  } else {
+    await gasRequest('favorites/add','POST',{system_id:id});
+    myFavorites.push(id);
+  }
+  document.getElementById('kpiFavs').textContent = myFavorites.length;
+  renderSystems();
+}
+
+function filterSystems(type, el) {
+  currentFilter = type;
+  document.querySelectorAll('.sidebar .sb-item').forEach(i=>i.classList.remove('active'));
+  if(el) el.classList.add('active');
+  renderSystems();
+}
+
+function filterType(type, el) {
+  currentTypeFilter = type;
+  document.querySelectorAll('#typeTabs .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderSystems();
+}
+
+// ════════════════════════════════════════════════════════════
+// ANNOUNCEMENTS
+// ════════════════════════════════════════════════════════════
+function renderAnnouncements() {
+  const panel = document.getElementById('annPanel');
+  const anns = allAnnouncements.slice(0,5);
+  if (anns.length === 0) {
+    panel.innerHTML = '<div style="padding:24px;text-align:center;color:var(--t3);font-size:13px">暫無公告</div>';
+    return;
+  }
+  panel.innerHTML = anns.map(a => `
+    <div class="ann-item">
+      <div class="ann-top">
+        <span class="priority p-${a.priority||'normal'}">${{urgent:'緊急',high:'重要',normal:'一般',low:'低'}[a.priority]||'一般'}</span>
+        <span class="ann-title">${escHtml(a.title)}</span>
+        <span class="unread-pip"></span>
+      </div>
+      <div class="ann-meta">${formatDate(new Date(a.created_at))}</div>
+    </div>`
+  ).join('');
+}
+
+// ════════════════════════════════════════════════════════════
+// RECENT
+// ════════════════════════════════════════════════════════════
+function renderRecent() {
+  const panel = document.getElementById('recentPanel');
+  if (recentAccess.length === 0) {
+    panel.innerHTML = '<div style="padding:24px;text-align:center;color:var(--t3);font-size:13px">尚無使用紀錄</div>';
+    return;
+  }
+  panel.innerHTML = recentAccess.slice(0,6).map(s => `
+    <div class="recent-item" onclick="openSystem('${s.id}','${escHtml(s.url)}','${s.open_mode||'new_tab'}')">
+      <div class="ri-icon">${s.icon_emoji||'🔗'}</div>
+      <div class="ri-info">
+        <div class="ri-name">${escHtml(s.name)}</div>
+        <div class="ri-time">最近使用</div>
+      </div>
+      <span class="ri-arrow">↗</span>
+    </div>`
+  ).join('');
+}
+
+// ════════════════════════════════════════════════════════════
+// SEARCH
+// ════════════════════════════════════════════════════════════
+function openSearch() {
+  document.getElementById('searchOverlay').classList.add('open');
+  setTimeout(()=>document.getElementById('searchInput').focus(),80);
+}
+function closeSearchOverlay(e) {
+  if(e.target===document.getElementById('searchOverlay'))
+    document.getElementById('searchOverlay').classList.remove('open');
+}
+function onSearch(q) {
+  const results = document.getElementById('searchResults');
+  if (!q.trim()) { results.innerHTML=''; return; }
+  const matched = allSystems.filter(s =>
+    s.name.includes(q) || (s.description||'').includes(q)
+  ).slice(0,8);
+  results.innerHTML = matched.length === 0
+    ? '<div class="search-hint">找不到符合的系統</div>'
+    : matched.map(s=>`
+      <div class="search-result-item" onclick="openSystem('${s.id}','${escHtml(s.url)}','${s.open_mode||'new_tab'}');document.getElementById('searchOverlay').classList.remove('open')">
+        <span class="sri-icon">${s.icon_emoji||'🔗'}</span>
+        <div>
+          <div class="sri-name">${escHtml(s.name)}</div>
+          <div class="sri-desc">${escHtml(s.description||'')} · ${s.system_type||''}</div>
+        </div>
+      </div>`).join('');
+}
+
+// ════════════════════════════════════════════════════════════
+// ADMIN
+// ════════════════════════════════════════════════════════════
+async function showAdmin() {
+  showLoader();
+  await loadAdminData();
+  showPage('adminPage');
+  hideLoader();
+}
+
+async function loadAdminData() {
+  const [sysRes, userRes, annRes, catRes] = await Promise.all([
+    gasRequest('systems/all','GET'),
+    gasRequest('users','GET'),
+    gasRequest('announcements','GET'),
+    gasRequest('categories','GET'),
+  ]);
+  renderAdminSystems(sysRes.data||[]);
+  renderAdminUsers(userRes.data||[]);
+  renderAdminAnns(annRes.data||[]);
+  renderAdminCats(catRes.data||[]);
+}
+
+function switchAdmin(panel, el) {
+  document.querySelectorAll('.admin-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('admin'+panel.charAt(0).toUpperCase()+panel.slice(1)).classList.add('active');
+  document.querySelectorAll('.admin-sidebar .sb-item').forEach(i=>i.classList.remove('active'));
+  el.classList.add('active');
+  if (panel==='stats') loadAdminStats();
+}
+
+function renderAdminSystems(systems) {
+  document.getElementById('systemsTableBody').innerHTML = systems.map(s=>`
+    <tr>
+      <td style="font-size:22px">${s.icon_emoji||'🔗'}</td>
+      <td><div style="font-weight:600;color:var(--t1)">${escHtml(s.name)}</div><div style="font-size:11px;color:var(--t3)">${escHtml(s.url)}</div></td>
+      <td><span class="type-tag tt-${s.system_type||'external'}">${s.system_type||'—'}</span></td>
+      <td>${s.category_id||'—'}</td>
+      <td><span class="status-pill ${s.is_active==='TRUE'||s.is_active===true?'sp-on':'sp-off'}">${s.is_active==='TRUE'||s.is_active===true?'上架':'下架'}</span></td>
+      <td><span class="hdot ${s.health_status||'unknown'}" style="display:inline-block;margin-right:4px"></span>${s.health_status||'unknown'}</td>
+      <td>
+        <div class="action-group">
+          <button class="act-btn ab-edit" onclick="editSystem(${JSON.stringify(escHtml(JSON.stringify(s))).slice(1,-1)})">編輯</button>
+          <button class="act-btn ab-toggle" onclick="toggleSystemAdmin('${s.id}')">上/下架</button>
+          <button class="act-btn ab-del" onclick="deleteSystem('${s.id}')">刪除</button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+function renderAdminUsers(users) {
+  document.getElementById('usersTableBody').innerHTML = users.map(u=>`
+    <tr>
+      <td style="font-weight:600;color:var(--t1)">${escHtml(u.name)}</td>
+      <td>${escHtml(u.email)}</td>
+      <td><span class="role-badge rb-${u.role}">${u.role}</span></td>
+      <td>${escHtml(u.department||'—')}</td>
+      <td><span class="status-pill ${u.is_active==='TRUE'||u.is_active===true?'sp-on':'sp-off'}">${u.is_active==='TRUE'||u.is_active===true?'啟用':'停用'}</span></td>
+      <td style="font-size:11px;font-family:'JetBrains Mono',monospace">${u.last_login_at?formatDate(new Date(u.last_login_at)):'—'}</td>
+      <td>
+        <div class="action-group">
+          <button class="act-btn ab-edit" onclick="editUser('${u.id}','${escHtml(u.name)}','${escHtml(u.email)}','${u.role}','${escHtml(u.department||'')}','${u.is_active}')">編輯</button>
+          <button class="act-btn ab-del" onclick="deleteUser('${u.id}')">刪除</button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+function renderAdminAnns(anns) {
+  document.getElementById('annsTableBody').innerHTML = anns.map(a=>`
+    <tr>
+      <td style="font-weight:600;color:var(--t1)">${escHtml(a.title)}</td>
+      <td><span class="priority p-${a.priority||'normal'}">${a.priority||'normal'}</span></td>
+      <td style="font-size:11px">${escHtml(a.target_roles||'all')}</td>
+      <td><span class="status-pill ${a.is_published==='TRUE'||a.is_published===true?'sp-on':'sp-off'}">${a.is_published==='TRUE'||a.is_published===true?'發佈':'草稿'}</span></td>
+      <td style="font-size:11px;font-family:'JetBrains Mono',monospace">${formatDate(new Date(a.created_at))}</td>
+      <td>
+        <div class="action-group">
+          <button class="act-btn ab-edit" onclick="editAnn('${a.id}','${escHtml(a.title)}','${escHtml(a.content)}','${a.priority}','${a.target_roles}','${a.is_published}')">編輯</button>
+          <button class="act-btn ab-del" onclick="deleteAnn('${a.id}')">刪除</button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+function renderAdminCats(cats) {
+  document.getElementById('catsTableBody').innerHTML = cats.map(c=>`
+    <tr>
+      <td style="font-size:22px">${c.icon}</td>
+      <td style="font-weight:600;color:var(--t1)">${escHtml(c.name)}</td>
+      <td><span style="display:inline-block;width:20px;height:20px;border-radius:4px;background:${c.color}"></span> ${c.color}</td>
+      <td>${c.sort_order}</td>
+      <td>
+        <div class="action-group">
+          <button class="act-btn ab-edit" onclick="editCat('${c.id}','${escHtml(c.name)}','${c.icon}','${c.color}')">編輯</button>
+          <button class="act-btn ab-del" onclick="deleteCat('${c.id}')">刪除</button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+async function loadAdminStats() {
+  const [statsRes, popRes] = await Promise.all([
+    gasRequest('analytics/stats','GET'),
+    gasRequest('analytics/popular','GET'),
+  ]);
+  const s = statsRes.data || {};
+  document.getElementById('adminKpiRow').innerHTML = `
+    <div class="kpi"><div class="kpi-label">系統總數</div><div class="kpi-val c-o">${s.totalSystems||0}</div></div>
+    <div class="kpi"><div class="kpi-label">使用者總數</div><div class="kpi-val c-b">${s.totalUsers||0}</div></div>
+    <div class="kpi"><div class="kpi-label">本月存取</div><div class="kpi-val c-g">${s.monthlyAccess||0}</div></div>
+    <div class="kpi"><div class="kpi-label">累計存取</div><div class="kpi-val c-p">${s.totalAccess||0}</div></div>`;
+  const pop = popRes.data || [];
+  document.getElementById('popularPanel').innerHTML = pop.map((p,i)=>`
+    <div class="recent-item">
+      <div class="ri-icon">${i+1}</div>
+      <div class="ri-info">
+        <div class="ri-name">${p.system_id}</div>
+        <div class="ri-time">存取 ${p.count} 次</div>
+      </div>
+    </div>`).join('') || '<div style="padding:20px;text-align:center;color:var(--t3)">暫無資料</div>';
+}
+
+// ════════════════════════════════════════════════════════════
+// CRUD MODALS
+// ════════════════════════════════════════════════════════════
+function openSystemModal(sys) {
+  document.getElementById('systemModalTitle').textContent = sys ? '編輯系統' : '新增系統入口';
+  document.getElementById('sysId').value = sys?.id || '';
+  document.getElementById('sysName').value = sys?.name || '';
+  document.getElementById('sysIcon').value = sys?.icon_emoji || '🔗';
+  document.getElementById('sysType').value = sys?.system_type || 'external';
+  document.getElementById('sysUrl').value = sys?.url || '';
+  document.getElementById('sysDesc').value = sys?.description || '';
+  document.getElementById('sysOpenMode').value = sys?.open_mode || 'new_tab';
+  document.getElementById('sysRoles').value = sys?.allowed_roles || 'admin,manager,staff';
+  document.getElementById('sysHealthUrl').value = sys?.health_url || '';
+  // 填充分類選項
+  const catSel = document.getElementById('sysCat');
+  catSel.innerHTML = '<option value="">無分類</option>' + allCategories.map(c=>
+    `<option value="${c.id}" ${sys?.category_id===c.id?'selected':''}>${c.icon} ${c.name}</option>`
+  ).join('');
+  openModal('systemModal');
+}
+
+function editSystem(sysJson) {
+  try { openSystemModal(JSON.parse(sysJson)); } catch(e) { toast('無法解析系統資料','error'); }
+}
+
+async function saveSystem() {
+  const id = document.getElementById('sysId').value;
+  const data = {
+    name: document.getElementById('sysName').value.trim(),
+    icon_emoji: document.getElementById('sysIcon').value.trim() || '🔗',
+    system_type: document.getElementById('sysType').value,
+    url: document.getElementById('sysUrl').value.trim(),
+    description: document.getElementById('sysDesc').value.trim(),
+    open_mode: document.getElementById('sysOpenMode').value,
+    category_id: document.getElementById('sysCat').value,
+    allowed_roles: document.getElementById('sysRoles').value.trim(),
+    health_url: document.getElementById('sysHealthUrl').value.trim(),
+  };
+  if (!data.name || !data.url) { toast('請填入必要欄位','error'); return; }
+  showLoader();
+  try {
+    const res = id
+      ? await gasRequest('systems/update','POST',{id,...data})
+      : await gasRequest('systems','POST',data);
+    if (res.success) {
+      toast(id?'系統已更新':'系統已新增','success');
+      closeModal('systemModal');
+      await loadAdminData();
+      const sysRes = await gasRequest('systems','GET');
+      allSystems = sysRes.data || [];
+      renderSystems();
+    } else toast(res.error||'操作失敗','error');
+  } finally { hideLoader(); }
+}
+
+async function toggleSystemAdmin(id) {
+  const res = await gasRequest('systems/toggle','POST',{id});
+  if (res.success) { toast(res.message,'success'); await loadAdminData(); }
+}
+
+async function deleteSystem(id) {
+  if (!confirm('確定要刪除此系統入口？')) return;
+  const res = await gasRequest('systems/delete','POST',{id});
+  if (res.success) { toast('已刪除','success'); await loadAdminData(); }
+}
+
+function openUserModal() {
+  document.getElementById('userModalTitle').textContent = '新增使用者';
+  document.getElementById('userId').value = '';
+  ['userName','userEmail','userPassword','userDept'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('userRole').value = 'staff';
+  document.getElementById('userActive').value = 'TRUE';
+  document.getElementById('passwordGroup').style.display = 'block';
+  document.getElementById('userPassword').required = true;
+  openModal('userModal');
+}
+
+function editUser(id, name, email, role, dept, active) {
+  document.getElementById('userModalTitle').textContent = '編輯使用者';
+  document.getElementById('userId').value = id;
+  document.getElementById('userName').value = name;
+  document.getElementById('userEmail').value = email;
+  document.getElementById('userRole').value = role;
+  document.getElementById('userDept').value = dept;
+  document.getElementById('userActive').value = active;
+  document.getElementById('userPassword').value = '';
+  document.getElementById('passwordGroup').style.display = 'none';
+  openModal('userModal');
+}
+
+async function saveUser() {
+  const id = document.getElementById('userId').value;
+  const data = {
+    name: document.getElementById('userName').value.trim(),
+    email: document.getElementById('userEmail').value.trim(),
+    role: document.getElementById('userRole').value,
+    department: document.getElementById('userDept').value.trim(),
+    is_active: document.getElementById('userActive').value,
+  };
+  if (!data.name || !data.email) { toast('請填入必要欄位','error'); return; }
+  if (!id) {
+    data.password = document.getElementById('userPassword').value;
+    if (!data.password || data.password.length < 6) { toast('密碼至少 6 個字元','error'); return; }
+  }
+  showLoader();
+  try {
+    const res = id
+      ? await gasRequest('users/update','POST',{id,...data})
+      : await gasRequest('users','POST',data);
+    if (res.success) {
+      toast(id?'使用者已更新':'使用者已新增','success');
+      closeModal('userModal');
+      await loadAdminData();
+    } else toast(res.error||'操作失敗','error');
+  } finally { hideLoader(); }
+}
+
+async function deleteUser(id) {
+  if (!confirm('確定要刪除此使用者？')) return;
+  const res = await gasRequest('users/delete','POST',{id});
+  if (res.success) { toast('已刪除','success'); await loadAdminData(); }
+}
+
+function openAnnModal() {
+  document.getElementById('annModalTitle').textContent = '新增公告';
+  document.getElementById('annId').value = '';
+  ['annTitle','annContent'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('annPriority').value='normal';
+  document.getElementById('annPublished').value='TRUE';
+  document.getElementById('annRoles').value='admin,manager,staff';
+  document.getElementById('annExpire').value='';
+  openModal('annModal');
+}
+
+function editAnn(id, title, content, priority, roles, published) {
+  document.getElementById('annModalTitle').textContent='編輯公告';
+  document.getElementById('annId').value=id;
+  document.getElementById('annTitle').value=title;
+  document.getElementById('annContent').value=content;
+  document.getElementById('annPriority').value=priority;
+  document.getElementById('annRoles').value=roles;
+  document.getElementById('annPublished').value=published;
+  openModal('annModal');
+}
+
+async function saveAnnouncement() {
+  const id = document.getElementById('annId').value;
+  const data = {
+    title: document.getElementById('annTitle').value.trim(),
+    content: document.getElementById('annContent').value.trim(),
+    priority: document.getElementById('annPriority').value,
+    target_roles: document.getElementById('annRoles').value.trim(),
+    is_published: document.getElementById('annPublished').value,
+    expire_at: document.getElementById('annExpire').value,
+  };
+  if (!data.title || !data.content) { toast('請填入標題與內容','error'); return; }
+  showLoader();
+  try {
+    const res = id
+      ? await gasRequest('announcements/update','POST',{id,...data})
+      : await gasRequest('announcements','POST',data);
+    if (res.success) {
+      toast('公告已儲存','success'); closeModal('annModal');
+      await loadAdminData();
+      const annRes = await gasRequest('announcements','GET');
+      allAnnouncements = annRes.data || [];
+      renderAnnouncements();
+    } else toast(res.error||'操作失敗','error');
+  } finally { hideLoader(); }
+}
+
+async function deleteAnn(id) {
+  if (!confirm('確定要刪除此公告？')) return;
+  const res = await gasRequest('announcements/delete','POST',{id});
+  if (res.success) { toast('已刪除','success'); await loadAdminData(); }
+}
+
+function openCatModal() {
+  document.getElementById('catId').value='';
+  document.getElementById('catName').value='';
+  document.getElementById('catIcon').value='';
+  document.getElementById('catColor').value='#F47920';
+  openModal('catModal');
+}
+
+function editCat(id, name, icon, color) {
+  document.getElementById('catId').value=id;
+  document.getElementById('catName').value=name;
+  document.getElementById('catIcon').value=icon;
+  document.getElementById('catColor').value=color;
+  openModal('catModal');
+}
+
+async function saveCategory() {
+  const id = document.getElementById('catId').value;
+  const data = {
+    name: document.getElementById('catName').value.trim(),
+    icon: document.getElementById('catIcon').value.trim() || '📁',
+    color: document.getElementById('catColor').value,
+  };
+  if (!data.name) { toast('請填入分類名稱','error'); return; }
+  showLoader();
+  try {
+    const res = id
+      ? await gasRequest('categories/update','POST',{id,...data})
+      : await gasRequest('categories','POST',data);
+    if (res.success) {
+      toast('分類已儲存','success'); closeModal('catModal');
+      await loadAdminData();
+      const catRes = await gasRequest('categories','GET');
+      allCategories = catRes.data || [];
+      renderPortal();
+    } else toast(res.error||'操作失敗','error');
+  } finally { hideLoader(); }
+}
+
+async function deleteCat(id) {
+  if (!confirm('確定要刪除此分類？')) return;
+  const res = await gasRequest('categories/delete','POST',{id});
+  if (res.success) { toast('已刪除','success'); await loadAdminData(); }
+}
+
+// ════════════════════════════════════════════════════════════
+// PAGE HELPERS
+// ════════════════════════════════════════════════════════════
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function showPortal() { showPage('portalPage'); }
+function showProfile() { /* 未來可擴充個人資訊 */ }
+function showRecentFull() { /* TODO */ }
+function showStats() { showAdmin(); }
+function openAnnsModal() { /* TODO */ }
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function showLoader() { document.getElementById('loader').classList.add('show'); }
+function hideLoader() { document.getElementById('loader').classList.remove('show'); }
+
+function toast(msg, type='info') {
+  const c = document.getElementById('toastContainer');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  const icons = {success:'✅',error:'❌',info:'ℹ️'};
+  el.innerHTML = `<span>${icons[type]||'ℹ️'}</span><span>${msg}</span>`;
+  c.appendChild(el);
+  setTimeout(()=>el.remove(), 3500);
+}
+
+// ════════════════════════════════════════════════════════════
+// UTILITIES
+// ════════════════════════════════════════════════════════════
+function escHtml(str) {
+  return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
+
+function formatDate(d) {
+  if (isNaN(d)) return '—';
+  return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function getTimeEmoji() {
+  const h = new Date().getHours();
+  if (h < 6) return '🌙';
+  if (h < 12) return '☀️';
+  if (h < 14) return '🌤️';
+  if (h < 18) return '🌇';
+  return '🌙';
+}
+
+// ════════════════════════════════════════════════════════════
+// KEYBOARD SHORTCUTS
+// ════════════════════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if ((e.metaKey||e.ctrlKey) && e.key==='k') { e.preventDefault(); openSearch(); }
+  if (e.key==='Escape') {
+    document.getElementById('searchOverlay').classList.remove('open');
+    document.querySelectorAll('.modal-overlay').forEach(m=>m.classList.remove('open'));
+  }
+});
+
+document.getElementById('loginEmail').addEventListener('keydown', e => {
+  if(e.key==='Enter') document.getElementById('loginPassword').focus();
+});
+document.getElementById('loginPassword').addEventListener('keydown', e => {
+  if(e.key==='Enter') doLogin();
+});
+
+// ════════════════════════════════════════════════════════════
+// BOOT
+// ════════════════════════════════════════════════════════════
+(async function boot() {
+  const token = localStorage.getItem('impr_token');
+  const expires = localStorage.getItem('impr_token_expires');
+  const userData = localStorage.getItem('impr_user');
+
+  if (token && expires && new Date(expires) > new Date() && userData) {
+    currentUser = JSON.parse(userData);
+    try {
+      await initPortal();
+    } catch {
+      showPage('loginPage');
+    }
+  } else {
+    clearAuth();
+    showPage('loginPage');
+  }
+
+  // 設定今天日期
+  document.getElementById('todayDate').textContent = formatDate(new Date());
+})();
+</script>
+</body>
+</html>
