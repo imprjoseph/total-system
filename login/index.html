@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>登入｜imPR 新動力公關</title>
+<style>
+  :root {
+    color-scheme: light;
+    --ink:#152b2d;
+    --muted:#506260;
+    --line:#dce4df;
+    --paper:#f5f6f2;
+    --accent:#f2954a;
+    --green:#18463d;
+    --danger:#a12f21;
+    font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  }
+  * { box-sizing:border-box }
+  body { margin:0; min-height:100vh; display:grid; place-items:center; background:var(--paper); color:var(--ink); line-height:1.55; padding:24px 16px }
+  button,input { font:inherit }
+  :focus-visible { outline:3px solid #c7651f; outline-offset:3px }
+  .panel { width:min(400px,100%); background:#fff; border:1px solid var(--line); border-radius:16px; box-shadow:0 10px 40px #17312712; overflow:hidden }
+  .head { padding:24px 28px 18px; border-bottom:1px solid var(--line) }
+  .head img { width:180px; height:auto; display:block }
+  .band { background:var(--green); color:#fff; padding:18px 28px; border-bottom:4px solid var(--accent) }
+  .band h1 { margin:0; font-size:1.35rem; font-weight:850; letter-spacing:.02em }
+  .band p { margin:4px 0 0; color:#e0ece6; font-size:.86rem }
+  form { padding:22px 28px 26px; display:grid; gap:14px }
+  label { display:block; font-weight:700; font-size:.85rem; margin-bottom:5px }
+  input { width:100%; border:1px solid #c9d4cd; background:#fff; color:var(--ink); border-radius:8px; padding:10px 12px }
+  input:focus { border-color:var(--green) }
+  .primary { border:0; border-radius:8px; padding:11px 14px; background:var(--green); color:#fff; font-weight:750; cursor:pointer }
+  .primary:hover { background:#10352e }
+  .primary:disabled { opacity:.6; cursor:progress }
+  .link { border:0; background:none; color:var(--green); font-weight:700; cursor:pointer; padding:0; text-decoration:underline; font-size:.86rem }
+  .msg { margin:0; font-size:.86rem; color:var(--danger) }
+  .msg.ok { color:var(--green) }
+  .msg:empty { display:none }
+  .note { margin:0; color:var(--muted); font-size:.8rem }
+  .who { margin:0; font-size:.92rem }
+  .row { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap }
+  [hidden] { display:none !important }
+</style>
+</head>
+<body>
+<main class="panel">
+  <div class="head"><img src="../sso/logo.png" width="300" height="60" alt="imPR 新動力公共關係顧問股份有限公司"></div>
+  <div class="band">
+    <h1 id="title">公司系統登入</h1>
+    <p id="subtitle">一組帳號進入公司所有內部系統</p>
+  </div>
+
+  <form id="login-form" novalidate>
+    <div>
+      <label for="account">帳號</label>
+      <input id="account" name="account" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+    </div>
+    <div>
+      <label for="password">密碼</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" required>
+    </div>
+    <p class="msg" id="login-msg" role="alert"></p>
+    <button class="primary" type="submit">登入</button>
+    <p class="note">忘記密碼或沒有帳號，請聯絡系統管理者。</p>
+  </form>
+
+  <form id="password-form" novalidate hidden>
+    <p class="who" id="who"></p>
+    <div>
+      <label for="old-password">目前密碼</label>
+      <input id="old-password" type="password" autocomplete="current-password" required>
+    </div>
+    <div>
+      <label for="new-password">新密碼（至少 6 個字元）</label>
+      <input id="new-password" type="password" autocomplete="new-password" minlength="6" required>
+    </div>
+    <div>
+      <label for="new-password2">再次輸入新密碼</label>
+      <input id="new-password2" type="password" autocomplete="new-password" minlength="6" required>
+    </div>
+    <p class="msg" id="password-msg" role="alert"></p>
+    <button class="primary" type="submit">變更密碼</button>
+    <div class="row">
+      <a class="link" id="back-link" href="../portal/">回到系統入口</a>
+      <button class="link" type="button" id="logout">登出</button>
+    </div>
+  </form>
+</main>
+
+<script src="../sso/sso.js"></script>
+<script>
+(function () {
+  const params = new URLSearchParams(location.search);
+  const next = ImprSSO.safeNext(params.get('next') || ImprSSO.PORTAL_URL);
+  const loginForm = document.getElementById('login-form');
+  const passwordForm = document.getElementById('password-form');
+  const $ = id => document.getElementById(id);
+
+  function busy(form, on) {
+    form.querySelector('.primary').disabled = on;
+  }
+
+  function showPasswordForm(user) {
+    $('title').textContent = '變更密碼';
+    $('subtitle').textContent = '新密碼會套用到所有公司系統';
+    $('who').textContent = '目前登入：' + user.name + '（' + user.account + '）';
+    loginForm.hidden = true;
+    passwordForm.hidden = false;
+    $('old-password').focus();
+  }
+
+  const user = ImprSSO.getUser();
+  if (params.get('mode') === 'password') {
+    if (user) showPasswordForm(user);
+    else location.replace(ImprSSO.LOGIN_URL + '?next=' + encodeURIComponent(location.href));
+  } else if (user) {
+    location.replace(next);
+    return;
+  } else {
+    $('account').focus();
+  }
+
+  loginForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const account = $('account').value.trim();
+    const password = $('password').value;
+    if (!account || !password) {
+      $('login-msg').textContent = '請輸入帳號與密碼';
+      return;
+    }
+    $('login-msg').textContent = '';
+    busy(loginForm, true);
+    try {
+      await ImprSSO.login(account, password);
+      location.replace(next);
+    } catch (e) {
+      $('login-msg').textContent = e.message;
+      $('password').value = '';
+      $('password').focus();
+      busy(loginForm, false);
+    }
+  });
+
+  passwordForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const msg = $('password-msg');
+    msg.classList.remove('ok');
+    const oldPassword = $('old-password').value;
+    const newPassword = $('new-password').value;
+    if (newPassword.length < 6) { msg.textContent = '新密碼至少 6 個字元'; return; }
+    if (newPassword !== $('new-password2').value) { msg.textContent = '兩次輸入的新密碼不一致'; return; }
+    msg.textContent = '';
+    busy(passwordForm, true);
+    try {
+      await ImprSSO.changePassword(oldPassword, newPassword);
+      passwordForm.querySelectorAll('input').forEach(i => { i.value = ''; });
+      msg.classList.add('ok');
+      msg.textContent = '密碼已變更，下次登入請使用新密碼';
+    } catch (e) {
+      msg.textContent = e.message;
+    } finally {
+      busy(passwordForm, false);
+    }
+  });
+
+  $('logout').addEventListener('click', () => ImprSSO.logout());
+})();
+</script>
+</body>
+</html>
