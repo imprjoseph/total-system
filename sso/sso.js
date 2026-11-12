@@ -48,7 +48,7 @@
     const token = getToken();
     const payload = token && decode(token);
     if (!payload || !payload.exp || payload.exp * 1000 <= Date.now()) return null;
-    return { account: payload.sub, name: payload.name, roles: payload.roles || {} };
+    return { account: payload.sub, name: payload.name, admin: payload.admin === true, roles: payload.roles || {} };
   }
 
   async function call(action, data) {
@@ -97,6 +97,16 @@
     return data.user;
   }
 
+  /** 帶目前憑證呼叫帳號中心（例如帳號管理）。憑證失效或帳號停用時清掉登入狀態。 */
+  async function request(action, data) {
+    try {
+      return await call(action, Object.assign({}, data || {}, { token: getToken() }));
+    } catch (e) {
+      if (e.code === 'TOKEN' || e.code === 'DISABLED') clearToken();
+      throw e;
+    }
+  }
+
   function logout() {
     clearToken();
     location.href = LOGIN_URL;
@@ -120,5 +130,5 @@
     return PORTAL_URL;
   }
 
-  window.ImprSSO = { getToken, getUser, login, refresh, changePassword, logout, requireLogin, safeNext, LOGIN_URL, PORTAL_URL };
+  window.ImprSSO = { getToken, getUser, login, refresh, changePassword, request, logout, requireLogin, safeNext, LOGIN_URL, PORTAL_URL };
 })();

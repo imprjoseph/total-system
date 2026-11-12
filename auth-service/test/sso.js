@@ -104,6 +104,19 @@ test('login 成功後存下新憑證', async () => {
   assert.strictEqual(sent.opts.headers, undefined, '不能設 Content-Type，否則觸發 CORS 預檢');
 });
 
+test('getUser 帶出 admin 旗標；request 自動附上憑證', async () => {
+  let sent;
+  const { sso, store } = load(ORIGIN + '/x/', async (url, opts) => {
+    sent = JSON.parse(opts.body);
+    return { json: async () => ({ ok: true, data: { accounts: [] } }) };
+  });
+  store.impr_sso_token = token({ sub: 'boss', admin: true, exp: Date.now() / 1000 + 60 });
+  assert.strictEqual(sso.getUser().admin, true);
+  await sso.request('admin.list', { token: 'spoofed' });
+  assert.strictEqual(sent.action, 'admin.list');
+  assert.strictEqual(sent.token, store.impr_sso_token, '一律用目前憑證，呼叫端不能覆蓋');
+});
+
 (async () => {
   let failed = 0;
   for (const t of tests) {

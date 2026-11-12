@@ -16,10 +16,12 @@ function makeContext() {
 
   const range = (r, c) => ({
     setValue(v) { values[r - 1][c - 1] = v; writes.push([r, c, v]); },
+    setValues(rows) { values[r - 1] = rows[0].slice(); writes.push([r, c, rows[0]]); },
   });
   const sheet = {
     getDataRange: () => ({ getValues: () => values.map(row => row.slice()) }),
     getRange: range,
+    getLastRow: () => values.length,
   };
 
   const Utilities = {
@@ -44,7 +46,7 @@ function makeContext() {
     },
   };
   vm.createContext(ctx);
-  ['Code.js', 'Setup.js'].forEach(f => vm.runInContext(fs.readFileSync(path.join(__dirname, '../src', f), 'utf8'), ctx, { filename: f }));
+  ['Code.js', 'Admin.js', 'Setup.js'].forEach(f => vm.runInContext(fs.readFileSync(path.join(__dirname, '../src', f), 'utf8'), ctx, { filename: f }));
   props.TOKEN_SECRET = 'test-secret';
 
   const header = vm.runInContext('BASE_COLUMNS.concat(SYSTEM_COLUMNS)', ctx);
@@ -53,10 +55,11 @@ function makeContext() {
     rowOf({ account: 'Amy', password: '0123ab', name: '王小美', active: true, 'activity-tracker': 'pm', resource: 'staff' }),
     rowOf({ account: 'bob', password: 'secret1', name: '陳大寶', active: '是' }),
     rowOf({ account: 'gone', password: 'secret2', name: '離職者', active: false, resource: 'admin' }),
+    rowOf({ account: 'boss', password: 'boss123', name: '管理者', active: true, admin: true, email: 'boss@example.com' }),
   ];
 
   const post = (body) => JSON.parse(ctx.doPost({ postData: { contents: JSON.stringify(body) } }).text);
-  return { ctx, post, props, cache, writes, setActive: (r, v) => { values[r][header.indexOf('active')] = v; } };
+  return { ctx, post, props, cache, writes, header, values: () => values, setActive: (r, v) => { values[r][header.indexOf('active')] = v; } };
 }
 
 const tests = [];
@@ -157,6 +160,92 @@ test('改密碼連錯 5 次也會鎖定，且鎖住登入', () => {
   for (let i = 0; i < 5; i++) post({ action: 'changePassword', token, oldPassword: 'guess' + i, newPassword: 'newpass1' });
   assert.strictEqual(post({ action: 'changePassword', token, oldPassword: 'secret1', newPassword: 'newpass1' }).error.code, 'LOCKED');
   assert.strictEqual(post({ action: 'login', account: 'bob', password: 'secret1' }).error.code, 'LOCKED');
+});
+
+// ---------- 帳號管理 ----------
+const tokenOf = (post, account, password) => post({ action: 'login', account, password }).data.token;
+const newHire = { account: 'Carol', name: '林小卡', email: 'Carol@Example.com', dept: '設計部', active: true, admin: false,
+  roles: { 'ai-design': 'designer', resource: '' } };
+
+test('[管理] 非管理員不能使用帳號管理', () => {
+  const { post } = makeContext();
+  const token = tokenOf(post, 'amy', '0123ab');
+  assert.strictEqual(post({ action: 'admin.list', token }).error.code, 'FORBIDDEN');
+  assert.strictEqual(post({ action: 'admin.save', token, account: newHire, isNew: true, password: 'carol123' }).error.code, 'FORBIDDEN');
+});
+
+test('[管理] 清單含所有帳號與角色選項，但不含密碼', () => {
+  const { post } = makeContext();
+  const data = post({ action: 'admin.list', token: tokenOf(post, 'boss', 'boss123') }).data;
+  assert.strictEqual(data.accounts.length, 4);
+  assert.ok(data.accounts.every(a => !('password' in a)));
+  assert.strictEqual(data.accounts[data.accounts.length - 1].account, 'gone', '停用帳號排最後');
+  assert.deepStrictEqual(data.systems.find(s => s.id === 'ai-design').roles, ['admin', 'designer', 'staff']);
+});
+
+test('[管理] 新增帳號後可登入，帳號轉小寫、email 轉小寫、角色寫入', () => {
+  const { post } = makeContext();
+  const token = tokenOf(post, 'boss', 'boss123');
+  const r = post({ action: 'admin.save', token, account: newHire, isNew: true, password: 'carol123' });
+  assert.ok(r.ok, JSON.stringify(r));
+  assert.strictEqual(r.data.account, 'carol');
+  assert.strictEqual(r.data.email, 'carol@example.com');
+  const login = post({ action: 'login', account: 'carol', password: 'carol123' });
+  assert.deepStrictEqual(login.data.user.roles, { 'ai-design': 'designer' });
+});
+
+test('[管理] 新增時帳號重複、密碼太短、帳號格式錯、無效角色、缺姓名都被拒絕', () => {
+  const { post } = makeContext();
+  const token = tokenOf(post, 'boss', 'boss123');
+  const save = (acc, pw) => post({ action: 'admin.save', token, account: Object.assign({}, newHire, acc), isNew: true, password: pw || 'longpass' }).error;
+  assert.match(save({ account: 'AMY' }).message, /已經存在/);
+  assert.match(save({}, '123').message, /至少/);
+  assert.match(save({ account: '王小美' }).message, /英文小寫/);
+  assert.match(save({ roles: { 'ai-design': 'mangaer' } }).message, /沒有「mangaer」/);
+  assert.match(save({ name: '  ' }).message, /姓名/);
+  assert.match(save({ email: 'not-an-email' }).message, /email/);
+});
+
+test('[管理] 修改帳號：保留密碼與帳號原樣，更新角色與狀態，修改不存在的帳號被拒絕', () => {
+  const { post } = makeContext();
+  const token = tokenOf(post, 'boss', 'boss123');
+  const r = post({ action: 'admin.save', token, isNew: false,
+    account: { account: 'amy', name: '王小美', active: true, admin: false, roles: { 'activity-tracker': 'staff' } } });
+  assert.ok(r.ok, JSON.stringify(r));
+  assert.deepStrictEqual(r.data.roles, { 'activity-tracker': 'staff' }, 'resource 角色被清掉');
+  assert.ok(post({ action: 'login', account: 'amy', password: '0123ab' }).ok, '密碼沒被動到');
+  assert.strictEqual(post({ action: 'admin.save', token, isNew: false, account: Object.assign({}, newHire) }).error.code, 'NOT_FOUND');
+});
+
+test('[管理] 停用帳號後，該帳號既有憑證立刻失效', () => {
+  const { post } = makeContext();
+  const amyToken = tokenOf(post, 'amy', '0123ab');
+  post({ action: 'admin.save', token: tokenOf(post, 'boss', 'boss123'), isNew: false,
+    account: { account: 'amy', name: '王小美', active: false, roles: {} } });
+  assert.strictEqual(post({ action: 'me', token: amyToken }).error.code, 'DISABLED');
+});
+
+test('[管理] 管理者不能停用自己或拿掉自己的管理權限', () => {
+  const { post } = makeContext();
+  const token = tokenOf(post, 'boss', 'boss123');
+  const self = { account: 'boss', name: '管理者', active: true, admin: true, roles: {} };
+  assert.match(post({ action: 'admin.save', token, isNew: false, account: Object.assign({}, self, { admin: false }) }).error.message, /不能停用自己/);
+  assert.match(post({ action: 'admin.save', token, isNew: false, account: Object.assign({}, self, { active: false }) }).error.message, /不能停用自己/);
+  assert.ok(post({ action: 'admin.save', token, isNew: false, account: Object.assign({}, self, { dept: '管理部' }) }).ok);
+});
+
+test('[管理] 重設密碼：新密碼可登入，並解除鎖定', () => {
+  const { post } = makeContext();
+  for (let i = 0; i < 5; i++) post({ action: 'login', account: 'bob', password: 'x' });
+  const r = post({ action: 'admin.resetPassword', token: tokenOf(post, 'boss', 'boss123'), account: 'BOB', password: 'reset99' });
+  assert.ok(r.ok, JSON.stringify(r));
+  assert.ok(post({ action: 'login', account: 'bob', password: 'reset99' }).ok);
+});
+
+test('[管理] 憑證帶 admin 旗標（入口網站據此顯示帳號管理連結）', () => {
+  const { post } = makeContext();
+  assert.strictEqual(post({ action: 'login', account: 'boss', password: 'boss123' }).data.user.admin, true);
+  assert.strictEqual(post({ action: 'login', account: 'amy', password: '0123ab' }).data.user.admin, false);
 });
 
 test('格式錯誤與未知動作回 VALIDATION，不洩漏內部錯誤', () => {

@@ -98,8 +98,11 @@
     .top .wrap { min-height:60px }
     .logo { width:120px }
     /* 手機寬度放不下四個連結，舊入口最少用到，先收起來。 */
-    .top-links { gap:12px; flex-wrap:nowrap }
+    /* 手機寬度一列放不下 logo 和所有連結：連結移到第二列；舊入口最少用到，先收起來。 */
+    .top .wrap { flex-wrap:wrap; padding:8px 0 4px; row-gap:0 }
+    .top-links { width:100%; justify-content:flex-start; gap:14px; flex-wrap:nowrap }
     .top-links a[target] { display:none }
+    .viewer { margin-right:auto; max-width:7em; overflow:hidden; text-overflow:ellipsis }
     .hero { margin-top:16px; padding:20px; grid-template-columns:1fr; gap:15px }
     .filterbar { margin-top:15px; gap:6px }
     .filters button { padding:5px 9px }
@@ -124,6 +127,7 @@
     <img class="logo" width="300" height="60" src="../sso/logo.png" alt="imPR 新動力公關">
     <div class="top-links">
       <span class="viewer" id="viewer"></span>
+      <a class="admin" id="admin-link" href="../admin/" hidden>帳號管理</a>
       <a class="admin" href="../login/?mode=password">變更密碼</a>
       <button class="admin" type="button" id="logout">登出</button>
       <a class="admin" href="https://imprjoseph.github.io/total-system/" target="_blank" rel="noopener noreferrer">原企業入口 ↗</a>
@@ -434,11 +438,13 @@
 
   if (viewer) {
     document.querySelector("#viewer").textContent = viewer.name;
+    document.querySelector("#admin-link").hidden = !viewer.admin;
     loadWorkbench();
     document.querySelector("#logout").addEventListener("click", () => ImprSSO.logout());
     render();
     // 背景回查帳號中心：角色有變就重畫，帳號被停用就登出。
     ImprSSO.refresh().then(user => {
+      document.querySelector("#admin-link").hidden = !user.admin;
       if (JSON.stringify(user.roles) !== JSON.stringify(viewer.roles)) {
         viewer.roles = user.roles;
         render();

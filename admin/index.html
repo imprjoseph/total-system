@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>帳號管理｜imPR 新動力公關</title>
+<!-- 這頁可以設定密碼與權限：只允許本站程式、只連線到帳號中心，與登入頁相同。 -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self'; connect-src https://script.google.com https://script.googleusercontent.com; form-action 'none'; base-uri 'none'">
+<style>
+  :root {
+    color-scheme: light;
+    --ink:#152b2d; --muted:#506260; --line:#dce4df; --paper:#f5f6f2; --white:#fff;
+    --accent:#f2954a; --green:#18463d; --danger:#a12f21; --soft:#edf5f0;
+    font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  }
+  * { box-sizing:border-box }
+  body { margin:0; background:var(--paper); color:var(--ink); line-height:1.55 }
+  a { color:inherit; text-decoration:none }
+  button,input,select { font:inherit }
+  button { cursor:pointer }
+  :focus-visible { outline:3px solid #c7651f; outline-offset:3px }
+  [hidden] { display:none !important }
+  .wrap { width:min(1120px,calc(100% - 64px)); margin-inline:auto }
+  .top { background:#fff; border-bottom:1px solid var(--line) }
+  .top .wrap { min-height:72px; display:flex; align-items:center; justify-content:space-between; gap:18px }
+  .logo { width:185px; height:auto; display:block }
+  .top-links { display:flex; align-items:center; gap:16px }
+  .top-links a,.top-links button { color:var(--green); font-weight:700; font-size:.85rem; border:0; background:none; padding:8px 0; white-space:nowrap }
+  .top-links a:hover,.top-links button:hover { text-decoration:underline }
+  .viewer { font-size:.85rem; font-weight:700; white-space:nowrap }
+  .hero { margin-top:24px; border-radius:16px; padding:22px 26px; background:var(--green); color:#fff; border-bottom:4px solid var(--accent); display:flex; justify-content:space-between; align-items:flex-end; gap:16px; flex-wrap:wrap }
+  h1 { margin:0; font-size:1.7rem; font-weight:850; letter-spacing:.02em }
+  .hero p { margin:4px 0 0; color:#e0ece6; font-size:.88rem }
+  .btn { border:1px solid #c7ded4; color:#1b473c; background:var(--soft); border-radius:8px; padding:8px 14px; font-weight:750; font-size:.88rem }
+  .btn:hover { background:#dfede5 }
+  .btn.primary { border-color:var(--green); background:var(--green); color:#fff }
+  .btn.primary:hover { background:#10352e }
+  .btn.light { background:#fff; border-color:#fff; color:var(--green) }
+  .btn:disabled { opacity:.6; cursor:progress }
+  .toolbar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:18px 0 12px }
+  .toolbar input { flex:1; min-width:200px; border:1px solid var(--line); background:#fff; border-radius:8px; padding:9px 12px }
+  .seg { display:flex; gap:4px }
+  .seg button { border:1px solid transparent; background:transparent; color:#435653; border-radius:999px; padding:6px 13px; font-size:.86rem; font-weight:700 }
+  .seg button[aria-pressed="true"] { color:#fff; background:var(--green) }
+  .count { color:var(--muted); font-size:.83rem; margin-left:auto }
+  .table { background:#fff; border:1px solid var(--line); border-radius:12px; overflow:hidden; margin-bottom:28px }
+  table { width:100%; border-collapse:collapse; font-size:.88rem }
+  th { text-align:left; font-size:.76rem; color:var(--muted); font-weight:700; letter-spacing:.03em; padding:10px 14px; background:#f8f9f6; border-bottom:1px solid var(--line) }
+  td { padding:11px 14px; border-bottom:1px solid #edf1ee; vertical-align:top }
+  tbody tr:last-child td { border-bottom:0 }
+  tbody tr { cursor:pointer }
+  tbody tr:hover { background:#f8faf8 }
+  tbody tr.off { color:#8a9a96 }
+  .acc b { display:block; font-weight:750 }
+  .acc small { display:block; color:var(--muted); font-size:.78rem; word-break:break-all }
+  .chips { display:flex; flex-wrap:wrap; gap:4px }
+  .chip { border-radius:999px; padding:0 8px; font-size:.74rem; background:var(--soft); color:var(--green); white-space:nowrap }
+  .chip.admin { background:#fff0df; color:#7c3e15; font-weight:700 }
+  .chip.none { background:transparent; color:#8a9a96; padding:0 }
+  .state { font-size:.76rem; font-weight:700; white-space:nowrap }
+  .state.on { color:var(--green) }
+  .state.off { color:#8a9a96 }
+  .empty { padding:28px; text-align:center; color:var(--muted) }
+  .notice { margin:40px auto; max-width:440px; text-align:center; background:#fff; border:1px solid var(--line); border-radius:14px; padding:28px }
+  .notice p { margin:0 0 14px; color:var(--muted) }
+  dialog { width:min(620px,calc(100% - 24px)); max-height:calc(100vh - 32px); padding:0; border:1px solid var(--line); border-radius:14px; color:var(--ink); box-shadow:0 16px 72px #102e2935 }
+  dialog::backdrop { background:#10282388 }
+  .dlg-head { padding:18px 22px 12px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; gap:10px }
+  .dlg-head h2 { margin:0; font-size:1.15rem }
+  .dlg-body { padding:16px 22px; display:grid; gap:14px }
+  .dlg-foot { padding:12px 22px 18px; display:flex; justify-content:flex-end; gap:10px; border-top:1px solid var(--line) }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px }
+  label { display:block; font-weight:700; font-size:.82rem; margin-bottom:4px }
+  .field input,.field select { width:100%; border:1px solid #c9d4cd; background:#fff; color:var(--ink); border-radius:8px; padding:8px 10px }
+  .field input[readonly] { background:#f3f5f2; color:var(--muted) }
+  .hint { color:var(--muted); font-size:.76rem; margin:3px 0 0 }
+  .checks { display:flex; gap:22px; flex-wrap:wrap }
+  .checks label { display:flex; align-items:center; gap:7px; font-weight:700; margin:0 }
+  .checks input { width:17px; height:17px; accent-color:var(--green) }
+  fieldset { border:1px solid var(--line); border-radius:10px; padding:10px 14px 14px; margin:0 }
+  legend { font-weight:800; font-size:.86rem; padding:0 6px }
+  .roles { display:grid; grid-template-columns:1fr 1fr; gap:10px 14px }
+  .pw-row { display:flex; gap:8px }
+  .pw-row input { flex:1 }
+  .msg { margin:0; font-size:.85rem; color:var(--danger) }
+  .msg.ok { color:var(--green) }
+  .msg:empty { display:none }
+  .x { border:0; background:none; font-size:1.3rem; line-height:1; color:var(--muted); padding:4px 8px }
+  .toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:var(--green); color:#fff; padding:10px 18px; border-radius:10px; font-size:.88rem; box-shadow:0 8px 30px #0003 }
+  @media(max-width:760px) {
+    .wrap { width:calc(100% - 28px) }
+    .top .wrap { min-height:60px }
+    .logo { width:120px }
+    .top-links { gap:12px }
+    .top-links .portal-link { display:none }
+    .hero { margin-top:14px; padding:18px }
+    .hide-sm { display:none }
+    td,th { padding:10px }
+    .grid2,.roles { grid-template-columns:1fr }
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a href="../portal/"><img class="logo" src="../sso/logo.png" width="300" height="60" alt="imPR 新動力公關"></a>
+    <div class="top-links">
+      <span class="viewer" id="viewer"></span>
+      <a class="portal-link" href="../portal/">系統入口</a>
+      <button type="button" id="logout">登出</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <div>
+      <h1>帳號管理</h1>
+      <p>新增同仁、設定各系統權限、停用帳號或重設密碼。</p>
+    </div>
+    <button class="btn light" type="button" id="add" hidden>＋ 新增帳號</button>
+  </section>
+
+  <div id="denied" class="notice" hidden>
+    <p>只有帳號管理員可以使用這一頁。需要調整帳號或權限，請聯絡系統管理者。</p>
+    <a class="btn" href="../portal/">回到系統入口</a>
+  </div>
+
+  <div id="content" hidden>
+    <div class="toolbar">
+      <input id="query" type="search" placeholder="搜尋帳號、姓名、部門、email" aria-label="搜尋帳號">
+      <div class="seg" role="group" aria-label="帳號狀態">
+        <button type="button" data-filter="active" aria-pressed="true">啟用中</button>
+        <button type="button" data-filter="off" aria-pressed="false">已停用</button>
+        <button type="button" data-filter="all" aria-pressed="false">全部</button>
+      </div>
+      <span class="count" id="count" role="status"></span>
+    </div>
+    <div class="table">
+      <table>
+        <thead><tr><th>帳號／姓名</th><th class="hide-sm">部門</th><th>系統權限</th><th class="hide-sm">狀態</th></tr></thead>
+        <tbody id="rows"><tr><td colspan="4" class="empty">載入中…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<dialog id="dlg" aria-labelledby="dlg-title">
+  <form id="form" novalidate>
+    <div class="dlg-head">
+      <h2 id="dlg-title">新增帳號</h2>
+      <button class="x" type="button" data-close aria-label="關閉">×</button>
+    </div>
+    <div class="dlg-body">
+      <div class="grid2">
+        <div class="field">
+          <label for="f-account">帳號</label>
+          <input id="f-account" autocomplete="off" autocapitalize="none" spellcheck="false" required>
+          <p class="hint" id="account-hint">2–32 個英文小寫、數字或 . _ -，建立後不能修改</p>
+        </div>
+        <div class="field">
+          <label for="f-name">姓名</label>
+          <input id="f-name" autocomplete="off" required>
+        </div>
+        <div class="field">
+          <label for="f-email">Email</label>
+          <input id="f-email" type="email" autocomplete="off">
+          <p class="hint">要和各系統填的負責人 email 相同，工作台才找得到待辦</p>
+        </div>
+        <div class="field">
+          <label for="f-dept">部門</label>
+          <input id="f-dept" autocomplete="off">
+        </div>
+      </div>
+      <div class="field">
+        <label for="f-note">備註</label>
+        <input id="f-note" autocomplete="off">
+      </div>
+      <div class="checks">
+        <label><input type="checkbox" id="f-active"> 啟用（可以登入）</label>
+        <label><input type="checkbox" id="f-admin"> 帳號管理員</label>
+      </div>
+      <fieldset>
+        <legend>系統權限</legend>
+        <div class="roles" id="roles"></div>
+        <p class="hint">選「無權限」的系統，入口網站不會列出。</p>
+      </fieldset>
+      <div class="field" id="new-pw">
+        <label for="f-password">初始密碼</label>
+        <div class="pw-row">
+          <input id="f-password" autocomplete="new-password" minlength="6">
+          <button class="btn" type="button" data-generate="f-password">產生</button>
+        </div>
+        <p class="hint">至少 6 個字元。請私下告訴同仁，並提醒登入後到「變更密碼」改掉。</p>
+      </div>
+      <p class="msg" id="form-msg" role="alert"></p>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn" type="button" data-close>取消</button>
+      <button class="btn primary" type="submit" id="save">儲存</button>
+    </div>
+  </form>
+  <form id="reset-form" novalidate hidden>
+    <div class="dlg-body" style="border-top:1px solid var(--line)">
+      <div class="field">
+        <label for="f-reset">重設密碼</label>
+        <div class="pw-row">
+          <input id="f-reset" autocomplete="new-password" minlength="6" placeholder="輸入或產生新密碼">
+          <button class="btn" type="button" data-generate="f-reset">產生</button>
+          <button class="btn primary" type="submit" id="reset-btn">重設</button>
+        </div>
+        <p class="hint">同仁忘記密碼或被鎖定時使用；重設後會一併解除鎖定。</p>
+      </div>
+      <p class="msg" id="reset-msg" role="alert"></p>
+    </div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="../sso/sso.js"></script>
+<script>
+(function () {
+  const viewer = ImprSSO.requireLogin();
+  if (!viewer) return;
+  const $ = id => document.getElementById(id);
+  let accounts = [];
+  let systems = [];
+  let filter = 'active';
+  let editing = null;
+
+  $('viewer').textContent = viewer.name;
+  $('logout').addEventListener('click', () => ImprSSO.logout());
+
+  function el(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text != null) node.textContent = text;
+    return node;
+  }
+
+  function toast(text) {
+    const t = $('toast');
+    t.textContent = text;
+    t.hidden = false;
+    clearTimeout(toast.timer);
+    toast.timer = setTimeout(() => { t.hidden = true; }, 2600);
+  }
+
+  function handleAuthError(error) {
+    if (error.code === 'TOKEN' || error.code === 'DISABLED') { ImprSSO.logout(); return true; }
+    if (error.code === 'FORBIDDEN') { showDenied(); return true; }
+    return false;
+  }
+
+  function showDenied() {
+    $('content').hidden = true;
+    $('add').hidden = true;
+    $('denied').hidden = false;
+  }
+
+  async function load() {
+    try {
+      const data = await ImprSSO.request('admin.list');
+      accounts = data.accounts;
+      systems = data.systems;
+      $('content').hidden = false;
+      $('add').hidden = false;
+      render();
+    } catch (error) {
+      if (handleAuthError(error)) return;
+      $('content').hidden = false;
+      $('rows').replaceChildren(rowMessage('無法載入帳號：' + error.message));
+    }
+  }
+
+  function rowMessage(text) {
+    const tr = el('tr');
+    const td = el('td', 'empty', text);
+    td.colSpan = 4;
+    tr.append(td);
+    return tr;
+  }
+
+  function systemName(id) {
+    const s = systems.find(x => x.id === id);
+    return s ? s.name : id;
+  }
+
+  function render() {
+    const words = $('query').value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const list = accounts.filter(a => {
+      if (filter === 'active' && !a.active) return false;
+      if (filter === 'off' && a.active) return false;
+      const text = [a.account, a.name, a.dept, a.email, a.note].join(' ').toLowerCase();
+      return words.every(w => text.includes(w));
+    });
+    $('count').textContent = list.length + ' 個帳號';
+    if (!list.length) {
+      $('rows').replaceChildren(rowMessage(accounts.length ? '沒有符合的帳號' : '還沒有帳號，按「新增帳號」建立第一個'));
+      return;
+    }
+    $('rows').replaceChildren(...list.map(a => {
+      const tr = el('tr', a.active ? '' : 'off');
+      tr.tabIndex = 0;
+      const acc = el('td', 'acc');
+      acc.append(el('b', null, a.name), el('small', null, a.account + (a.email ? '・' + a.email : '')));
+      const chips = el('div', 'chips');
+      if (a.admin) chips.append(el('span', 'chip admin', '帳號管理員'));
+      Object.keys(a.roles).forEach(id => chips.append(el('span', 'chip', systemName(id) + '：' + a.roles[id])));
+      if (!a.admin && !Object.keys(a.roles).length) chips.append(el('span', 'chip none', '沒有系統權限'));
+      const rolesTd = el('td');
+      rolesTd.append(chips);
+      const stateTd = el('td', 'hide-sm');
+      stateTd.append(el('span', 'state ' + (a.active ? 'on' : 'off'), a.active ? '啟用' : '已停用'));
+      tr.append(acc, el('td', 'hide-sm', a.dept || '—'), rolesTd, stateTd);
+      tr.addEventListener('click', () => openDialog(a));
+      tr.addEventListener('keydown', e => { if (e.key === 'Enter') openDialog(a); });
+      return tr;
+    }));
+  }
+
+  function renderRoleSelects(roles) {
+    $('roles').replaceChildren(...systems.map(s => {
+      const wrap = el('div', 'field');
+      const label = el('label', null, s.name);
+      label.htmlFor = 'role-' + s.id;
+      const select = el('select');
+      select.id = 'role-' + s.id;
+      select.dataset.system = s.id;
+      select.append(new Option('無權限', ''), ...s.roles.map(r => new Option(r, r)));
+      select.value = roles[s.id] || '';
+      wrap.append(label, select);
+      return wrap;
+    }));
+  }
+
+  function openDialog(account) {
+    editing = account || null;
+    const isNew = !editing;
+    $('dlg-title').textContent = isNew ? '新增帳號' : '編輯帳號｜' + editing.name;
+    $('f-account').value = isNew ? '' : editing.account;
+    $('f-account').readOnly = !isNew;
+    $('account-hint').hidden = !isNew;
+    $('f-name').value = isNew ? '' : editing.name;
+    $('f-email').value = isNew ? '' : editing.email;
+    $('f-dept').value = isNew ? '' : editing.dept;
+    $('f-note').value = isNew ? '' : editing.note;
+    $('f-active').checked = isNew ? true : editing.active;
+    $('f-admin').checked = isNew ? false : editing.admin;
+    // 自己的啟用與管理權限不能在這裡拿掉，帳號中心也會擋；先在畫面上鎖住，免得按了才被拒絕。
+    const self = !isNew && editing.account === viewer.account;
+    $('f-active').disabled = self;
+    $('f-admin').disabled = self;
+    renderRoleSelects(isNew ? {} : editing.roles);
+    $('new-pw').hidden = !isNew;
+    $('f-password').value = '';
+    $('reset-form').hidden = isNew;
+    $('f-reset').value = '';
+    $('form-msg').textContent = '';
+    $('reset-msg').textContent = '';
+    $('reset-msg').classList.remove('ok');
+    $('dlg').showModal();
+    (isNew ? $('f-account') : $('f-name')).focus();
+  }
+
+  function generatePassword() {
+    // 去掉 0/O、1/l/I 這類容易抄錯的字元，同仁照著輸入時才不會打錯。
+    const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789';
+    const bytes = crypto.getRandomValues(new Uint8Array(10));
+    return Array.from(bytes, b => chars[b % chars.length]).join('');
+  }
+
+  function busy(button, on) {
+    if (!button.dataset.label) button.dataset.label = button.textContent;
+    button.disabled = on;
+    button.textContent = on ? '處理中…' : button.dataset.label;
+  }
+
+  $('form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const isNew = !editing;
+    const roles = {};
+    $('roles').querySelectorAll('select').forEach(s => { roles[s.dataset.system] = s.value; });
+    const account = {
+      account: $('f-account').value.trim(),
+      name: $('f-name').value.trim(),
+      email: $('f-email').value.trim(),
+      dept: $('f-dept').value.trim(),
+      note: $('f-note').value.trim(),
+      active: $('f-active').checked,
+      admin: $('f-admin').checked,
+      roles,
+    };
+    if (!account.account || !account.name) { $('form-msg').textContent = '請填帳號與姓名'; return; }
+    if (isNew && $('f-password').value.length < 6) { $('form-msg').textContent = '初始密碼至少 6 個字元'; return; }
+    $('form-msg').textContent = '';
+    busy($('save'), true);
+    try {
+      const saved = await ImprSSO.request('admin.save', { account, isNew, password: isNew ? $('f-password').value : undefined });
+      const i = accounts.findIndex(a => a.account === saved.account);
+      if (i === -1) accounts.push(saved); else accounts[i] = saved;
+      $('dlg').close();
+      render();
+      toast((isNew ? '已新增 ' : '已更新 ') + saved.name);
+    } catch (error) {
+      if (!handleAuthError(error)) $('form-msg').textContent = error.message;
+    } finally {
+      busy($('save'), false);
+    }
+  });
+
+  $('reset-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const msg = $('reset-msg');
+    msg.classList.remove('ok');
+    const password = $('f-reset').value;
+    if (password.length < 6) { msg.textContent = '新密碼至少 6 個字元'; return; }
+    busy($('reset-btn'), true);
+    try {
+      await ImprSSO.request('admin.resetPassword', { account: editing.account, password });
+      msg.classList.add('ok');
+      msg.textContent = '已重設。請私下把新密碼告訴 ' + editing.name + '，並提醒登入後改掉。';
+    } catch (error) {
+      if (!handleAuthError(error)) msg.textContent = error.message;
+    } finally {
+      busy($('reset-btn'), false);
+    }
+  });
+
+  document.querySelectorAll('[data-generate]').forEach(b => b.addEventListener('click', () => {
+    $(b.dataset.generate).value = generatePassword();
+  }));
+  document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => $('dlg').close()));
+  $('add').addEventListener('click', () => openDialog(null));
+  $('query').addEventListener('input', render);
+  document.querySelectorAll('[data-filter]').forEach(b => b.addEventListener('click', () => {
+    filter = b.dataset.filter;
+    document.querySelectorAll('[data-filter]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    render();
+  }));
+
+  if (!viewer.admin) showDenied();
+  else load();
+})();
+</script>
+</body>
+</html>

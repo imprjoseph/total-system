@@ -16,12 +16,24 @@ const MAX_FAILS = 5;
 const LOCK_SEC = 15 * 60;
 const MIN_PASSWORD_LENGTH = 6;
 
-const BASE_COLUMNS = ['account', 'password', 'name', 'email', 'dept', 'active', 'note'];
-// 每個系統一欄角色，欄名就是入口網站上的系統 id；空白代表不能使用該系統。
-const SYSTEM_COLUMNS = [
-  'activity-tracker', 'impr-attendance', 'PT-member', 'project-pulse-impr',
-  'custormers-and-suppliers', 'resource', 'speaker-platform', 'ai-design',
+// admin 勾選的人才能用帳號管理頁；帳號中心本身的權限也放在這張表，管理者不必另外維護一份名單。
+const BASE_COLUMNS = ['account', 'password', 'name', 'email', 'dept', 'active', 'admin', 'note'];
+/**
+ * 每個系統一欄角色，欄名就是入口網站上的系統 id；空白代表不能使用該系統。
+ * 角色值限定在 roles 清單內：沿用各系統原本的角色名稱，之後各系統改用帳號中心時可以直接對應，
+ * 也避免手打 mangaer 這類錯字，讓某人莫名其妙沒有權限。
+ */
+const SYSTEMS = [
+  { id: 'activity-tracker', name: '活動與任務追蹤', roles: ['admin', 'pm', 'staff'] },
+  { id: 'impr-attendance', name: '公司同仁出勤', roles: ['admin', 'manager', 'staff'] },
+  { id: 'PT-member', name: '派遣人員勤務', roles: ['admin', 'manager', 'staff'] },
+  { id: 'project-pulse-impr', name: '工時與週報', roles: ['admin', 'manager', 'staff'] },
+  { id: 'custormers-and-suppliers', name: '客戶與供應商管理', roles: ['SUPER_ADMIN', 'SALES', 'PM'] },
+  { id: 'resource', name: '物資借用與 SOP', roles: ['admin', 'manager', 'staff'] },
+  { id: 'speaker-platform', name: '講師接待', roles: ['admin', 'staff'] },
+  { id: 'ai-design', name: 'AI 平面設計', roles: ['admin', 'designer', 'staff'] },
 ];
+const SYSTEM_COLUMNS = SYSTEMS.map(s => s.id);
 
 class AuthError extends Error {
   constructor(code, message) {
@@ -59,6 +71,9 @@ function route_(action, b) {
     case 'me': return me_(b.token);
     case 'verify': return verify_(b.token, b.system);
     case 'changePassword': return changePassword_(b.token, b.oldPassword, b.newPassword);
+    case 'admin.list': return adminList_(b.token);
+    case 'admin.save': return adminSave_(b.token, b.account, b.isNew, b.password);
+    case 'admin.resetPassword': return adminResetPassword_(b.token, b.account, b.password);
   }
   throw new AuthError('VALIDATION', '不支援的動作');
 }
@@ -154,21 +169,30 @@ function sheet_() {
 }
 
 function findAccount_(key) {
+  return readAccounts_().rows.filter(row => normAccount_(row.account) === key)[0] || null;
+}
+
+/**
+ * 整張表一次讀進來。欄位依表頭名稱對應，管理者在試算表調整欄位順序也不影響。
+ */
+function readAccounts_() {
   const values = sheet_().getDataRange().getValues();
   const header = values[0].map(h => String(h).trim());
   const columns = {};
   header.forEach((h, i) => { columns[h] = i + 1; });
+  const rows = [];
   for (let r = 1; r < values.length; r++) {
     const raw = values[r];
-    if (normAccount_(raw[columns.account - 1]) !== key) continue;
+    if (!String(raw[columns.account - 1] == null ? '' : raw[columns.account - 1]).trim()) continue;
     const row = { rowNumber: r + 1, columns };
     header.forEach((h, i) => { row[h] = raw[i]; });
     row.account = String(row.account).trim();
     row.password = String(row.password);
     row.active = isTruthy_(row.active);
-    return row;
+    row.admin = isTruthy_(row.admin);
+    rows.push(row);
   }
-  return null;
+  return { header, columns, rows };
 }
 
 function publicUser_(row) {
@@ -182,6 +206,7 @@ function publicUser_(row) {
     name: String(row.name || row.account),
     email: String(row.email || ''),
     dept: String(row.dept || ''),
+    admin: !!row.admin,
     roles,
   };
 }
@@ -202,7 +227,7 @@ function isTruthy_(v) {
 function issueToken_(row) {
   const now = Math.floor(Date.now() / 1000);
   const user = publicUser_(row);
-  const payload = { sub: normAccount_(row.account), name: user.name, roles: user.roles, iat: now, exp: now + TOKEN_TTL_SEC };
+  const payload = { sub: normAccount_(row.account), name: user.name, admin: user.admin, roles: user.roles, iat: now, exp: now + TOKEN_TTL_SEC };
   const body = b64_(JSON.stringify(payload));
   return body + '.' + sign_(body);
 }

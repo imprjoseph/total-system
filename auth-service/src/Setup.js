@@ -24,13 +24,19 @@ function setupAccounts() {
   // 密碼欄設成純文字，否則 0123 這類密碼會被試算表轉成數字 123。
   const passwordCol = header.indexOf('password') + 1;
   sheet.getRange(1, passwordCol, sheet.getMaxRows(), 1).setNumberFormat('@');
-  const activeCol = header.indexOf('active') + 1;
-  sheet.getRange(2, activeCol, Math.max(sheet.getMaxRows() - 1, 1), 1).insertCheckboxes();
+  const dataRows = Math.max(sheet.getMaxRows() - 1, 1);
+  ['active', 'admin'].forEach(c => sheet.getRange(2, header.indexOf(c) + 1, dataRows, 1).insertCheckboxes());
+  // 角色欄做成下拉選單，直接改試算表時也只能選有效角色，和帳號管理頁的檢查一致。
+  SYSTEMS.forEach(s => {
+    const rule = SpreadsheetApp.newDataValidation().requireValueInList(s.roles, true).setAllowInvalid(false).build();
+    sheet.getRange(2, header.indexOf(s.id) + 1, dataRows, 1).setDataValidation(rule);
+  });
 
   const props = PropertiesService.getScriptProperties();
   if (!props.getProperty('TOKEN_SECRET')) props.setProperty('TOKEN_SECRET', newSecret_());
 
   console.log('accounts 分頁已就緒，新增欄位：' + (missing.join(', ') || '無'));
+  console.log('請在自己那一列勾選 admin，才能使用帳號管理頁');
   return { addedColumns: missing };
 }
 
