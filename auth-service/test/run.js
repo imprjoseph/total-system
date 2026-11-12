@@ -151,6 +151,14 @@ test('改密碼：舊密碼錯拒絕；太短拒絕；成功後新密碼可登�
   assert.strictEqual(post({ action: 'login', account: 'bob', password: 'secret1' }).error.code, 'AUTH');
 });
 
+test('改密碼連錯 5 次也會鎖定，且鎖住登入', () => {
+  const { post } = makeContext();
+  const { token } = post({ action: 'login', account: 'bob', password: 'secret1' }).data;
+  for (let i = 0; i < 5; i++) post({ action: 'changePassword', token, oldPassword: 'guess' + i, newPassword: 'newpass1' });
+  assert.strictEqual(post({ action: 'changePassword', token, oldPassword: 'secret1', newPassword: 'newpass1' }).error.code, 'LOCKED');
+  assert.strictEqual(post({ action: 'login', account: 'bob', password: 'secret1' }).error.code, 'LOCKED');
+});
+
 test('格式錯誤與未知動作回 VALIDATION，不洩漏內部錯誤', () => {
   const { ctx, post } = makeContext();
   assert.strictEqual(JSON.parse(ctx.doPost({ postData: { contents: '{bad' } }).text).error.code, 'VALIDATION');

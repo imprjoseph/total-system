@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
+<!-- 這頁會輸入密碼：只允許本站的程式，連線只能到帳號中心，降低被插入惡意程式偷密碼的風險。 -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self'; connect-src https://script.google.com https://script.googleusercontent.com; form-action 'none'; base-uri 'none'">
 <title>登入｜imPR 新動力公關</title>
 <style>
   :root {
@@ -98,8 +100,12 @@
   const passwordForm = document.getElementById('password-form');
   const $ = id => document.getElementById(id);
 
+  // 帳號中心冷啟動可能要幾秒，按鈕要有回饋，否則同事會重複點擊。
   function busy(form, on) {
-    form.querySelector('.primary').disabled = on;
+    const button = form.querySelector('.primary');
+    if (!button.dataset.label) button.dataset.label = button.textContent;
+    button.disabled = on;
+    button.textContent = on ? '處理中…' : button.dataset.label;
   }
 
   function showPasswordForm(user) {

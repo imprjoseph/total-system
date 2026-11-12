@@ -66,19 +66,15 @@ function route_(action, b) {
 function login_(account, password) {
   const key = normAccount_(account);
   if (!key || !password) throw new AuthError('VALIDATION', '請輸入帳號與密碼');
-  const cache = CacheService.getScriptCache();
-  const failKey = 'fail:' + key;
-  const fails = Number(cache.get(failKey) || 0);
-  if (fails >= MAX_FAILS) throw new AuthError('LOCKED', '密碼錯誤次數過多，請 15 分鐘後再試');
-
+  assertNotLocked_(key);
   const row = findAccount_(key);
   // 帳號不存在也計次、回同一句話，避免被拿來試出哪些帳號存在。
   if (!row || row.password !== String(password)) {
-    cache.put(failKey, String(fails + 1), LOCK_SEC);
+    recordFail_(key);
     throw new AuthError('AUTH', '帳號或密碼錯誤');
   }
   if (!row.active) throw new AuthError('DISABLED', '此帳號已停用，請聯絡管理者');
-  cache.remove(failKey);
+  clearFails_(key);
   return { token: issueToken_(row), user: publicUser_(row) };
 }
 
@@ -110,7 +106,14 @@ function changePassword_(token, oldPassword, newPassword) {
   if (!lock.tryLock(10000)) throw new AuthError('LOCK', '系統忙碌中，請稍後再試');
   try {
     const row = activeAccountFor_(token);
-    if (row.password !== String(oldPassword || '')) throw new AuthError('AUTH', '目前密碼不正確');
+    // 和登入共用失敗次數：拿到別人已登入的瀏覽器，也不能在這裡無限猜出原密碼。
+    const key = normAccount_(row.account);
+    assertNotLocked_(key);
+    if (row.password !== String(oldPassword || '')) {
+      recordFail_(key);
+      throw new AuthError('AUTH', '目前密碼不正確');
+    }
+    clearFails_(key);
     if (next === row.password) throw new AuthError('VALIDATION', '新密碼不能和目前密碼相同');
     sheet_().getRange(row.rowNumber, row.columns.password).setValue(next);
     row.password = next;
@@ -118,6 +121,21 @@ function changePassword_(token, oldPassword, newPassword) {
   } finally {
     lock.releaseLock();
   }
+}
+
+function assertNotLocked_(key) {
+  if (Number(CacheService.getScriptCache().get('fail:' + key) || 0) >= MAX_FAILS) {
+    throw new AuthError('LOCKED', '密碼錯誤次數過多，請 15 分鐘後再試');
+  }
+}
+
+function recordFail_(key) {
+  const cache = CacheService.getScriptCache();
+  cache.put('fail:' + key, String(Number(cache.get('fail:' + key) || 0) + 1), LOCK_SEC);
+}
+
+function clearFails_(key) {
+  CacheService.getScriptCache().remove('fail:' + key);
 }
 
 function activeAccountFor_(token) {
