@@ -48,7 +48,7 @@
     const token = getToken();
     const payload = token && decode(token);
     if (!payload || !payload.exp || payload.exp * 1000 <= Date.now()) return null;
-    return { account: payload.sub, name: payload.name, admin: payload.admin === true, roles: payload.roles || {} };
+    return { account: payload.sub, name: payload.name, type: payload.type || '正職', admin: payload.admin === true, roles: payload.roles || {} };
   }
 
   async function call(action, data) {

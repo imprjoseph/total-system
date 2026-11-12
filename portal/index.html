@@ -194,6 +194,7 @@
     { id:"IMPR-AI-Conference-Hub", category:"專用系統", name:"會議資訊平台", description:"雙語議程、常見問題、術語及觀眾提問。", keywords:"QA FAQ 議程", path:"IMPR-AI-Conference-Hub" }
   ];
 
+  const DISPATCH_SYSTEMS = ["PT-member"];
   const storageKey = "impr-portal.custom-urls.v1";
   const query = document.querySelector("#query");
   const grid = document.querySelector("#systems");
@@ -271,6 +272,8 @@
     const matches = systems.filter(system => {
       // managed 的系統由帳號中心管權限，沒有角色就不列出，避免同事點進去才發現不能用。
       if (system.managed && !(viewer && viewer.roles[system.id])) return false;
+      // 派遣人員只看得到派遣系統，連對外的活動系統也不列（帳號中心另外擋住其他系統的驗證）。
+      if (viewer && viewer.type === "派遣" && !DISPATCH_SYSTEMS.includes(system.id)) return false;
       const content = [system.id, system.name, system.category, system.description, system.keywords].join(" ").toLowerCase();
       return (category === "全部" || category === system.category) && words.every(word => content.includes(word));
     });
@@ -439,14 +442,17 @@
   if (viewer) {
     document.querySelector("#viewer").textContent = viewer.name;
     document.querySelector("#admin-link").hidden = !viewer.admin;
+    // 派遣人員只有一個系統，分類按鈕只會點出空清單。
+    if (viewer.type === "派遣") filters.hidden = true;
     loadWorkbench();
     document.querySelector("#logout").addEventListener("click", () => ImprSSO.logout());
     render();
     // 背景回查帳號中心：角色有變就重畫，帳號被停用就登出。
     ImprSSO.refresh().then(user => {
       document.querySelector("#admin-link").hidden = !user.admin;
-      if (JSON.stringify(user.roles) !== JSON.stringify(viewer.roles)) {
+      if (JSON.stringify(user.roles) !== JSON.stringify(viewer.roles) || user.type !== viewer.type) {
         viewer.roles = user.roles;
+        viewer.type = user.type;
         render();
       }
     }).catch(error => {

@@ -17,7 +17,14 @@ const LOCK_SEC = 15 * 60;
 const MIN_PASSWORD_LENGTH = 6;
 
 // admin 勾選的人才能用帳號管理頁；帳號中心本身的權限也放在這張表，管理者不必另外維護一份名單。
-const BASE_COLUMNS = ['account', 'password', 'name', 'email', 'dept', 'active', 'admin', 'note'];
+const BASE_COLUMNS = ['account', 'password', 'name', 'email', 'dept', 'type', 'active', 'admin', 'note'];
+
+/**
+ * 帳號類型。派遣人員只能使用派遣系統：他們不是公司同仁，不該看到客戶、利潤、內部專案等資料。
+ * 限制做在帳號中心（角色過濾、verify 拒絕），不只靠入口網站隱藏，否則知道網址就能直接進其他系統。
+ */
+const ACCOUNT_TYPES = { STAFF: '正職', DISPATCH: '派遣' };
+const DISPATCH_SYSTEMS = ['PT-member'];
 /**
  * 每個系統一欄角色，欄名就是入口網站上的系統 id；空白代表不能使用該系統。
  * 角色值限定在 roles 清單內：沿用各系統原本的角色名稱，之後各系統改用帳號中心時可以直接對應，
@@ -196,8 +203,10 @@ function readAccounts_() {
 }
 
 function publicUser_(row) {
+  const type = accountType_(row.type);
   const roles = {};
   SYSTEM_COLUMNS.forEach(s => {
+    if (type === ACCOUNT_TYPES.DISPATCH && DISPATCH_SYSTEMS.indexOf(s) === -1) return;
     const role = String(row[s] == null ? '' : row[s]).trim();
     if (role) roles[s] = role;
   });
@@ -206,9 +215,16 @@ function publicUser_(row) {
     name: String(row.name || row.account),
     email: String(row.email || ''),
     dept: String(row.dept || ''),
-    admin: !!row.admin,
+    type,
+    // 派遣帳號就算在試算表被勾了 admin 也不生效。
+    admin: !!row.admin && type !== ACCOUNT_TYPES.DISPATCH,
     roles,
   };
+}
+
+// 空白或不認得的值一律當正職：既有帳號在加這個欄位前都是同仁。
+function accountType_(v) {
+  return String(v == null ? '' : v).trim() === ACCOUNT_TYPES.DISPATCH ? ACCOUNT_TYPES.DISPATCH : ACCOUNT_TYPES.STAFF;
 }
 
 // 帳號不分大小寫、去頭尾空白，避免同事輸入 Amy 和 amy 被當成兩個人。
@@ -227,7 +243,7 @@ function isTruthy_(v) {
 function issueToken_(row) {
   const now = Math.floor(Date.now() / 1000);
   const user = publicUser_(row);
-  const payload = { sub: normAccount_(row.account), name: user.name, admin: user.admin, roles: user.roles, iat: now, exp: now + TOKEN_TTL_SEC };
+  const payload = { sub: normAccount_(row.account), name: user.name, type: user.type, admin: user.admin, roles: user.roles, iat: now, exp: now + TOKEN_TTL_SEC };
   const body = b64_(JSON.stringify(payload));
   return body + '.' + sign_(body);
 }

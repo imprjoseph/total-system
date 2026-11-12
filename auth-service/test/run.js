@@ -56,6 +56,9 @@ function makeContext() {
     rowOf({ account: 'bob', password: 'secret1', name: '陳大寶', active: '是' }),
     rowOf({ account: 'gone', password: 'secret2', name: '離職者', active: false, resource: 'admin' }),
     rowOf({ account: 'boss', password: 'boss123', name: '管理者', active: true, admin: true, email: 'boss@example.com' }),
+    // 試算表被手動填了其他系統角色和 admin，也不能生效。
+    rowOf({ account: 'pt01', password: 'ptpass1', name: '派遣甲', type: '派遣', active: true, admin: true,
+      'PT-member': 'staff', 'activity-tracker': 'pm', resource: 'admin' }),
   ];
 
   const post = (body) => JSON.parse(ctx.doPost({ postData: { contents: JSON.stringify(body) } }).text);
@@ -177,7 +180,7 @@ test('[管理] 非管理員不能使用帳號管理', () => {
 test('[管理] 清單含所有帳號與角色選項，但不含密碼', () => {
   const { post } = makeContext();
   const data = post({ action: 'admin.list', token: tokenOf(post, 'boss', 'boss123') }).data;
-  assert.strictEqual(data.accounts.length, 4);
+  assert.strictEqual(data.accounts.length, 5);
   assert.ok(data.accounts.every(a => !('password' in a)));
   assert.strictEqual(data.accounts[data.accounts.length - 1].account, 'gone', '停用帳號排最後');
   assert.deepStrictEqual(data.systems.find(s => s.id === 'ai-design').roles, ['admin', 'designer', 'staff']);
@@ -246,6 +249,51 @@ test('[管理] 憑證帶 admin 旗標（入口網站據此顯示帳號管理連�
   const { post } = makeContext();
   assert.strictEqual(post({ action: 'login', account: 'boss', password: 'boss123' }).data.user.admin, true);
   assert.strictEqual(post({ action: 'login', account: 'amy', password: '0123ab' }).data.user.admin, false);
+});
+
+// ---------- 派遣人員 ----------
+test('[派遣] 只保留派遣系統角色，admin 不生效；憑證也帶類型', () => {
+  const { post } = makeContext();
+  const r = post({ action: 'login', account: 'pt01', password: 'ptpass1' });
+  assert.deepStrictEqual(r.data.user.roles, { 'PT-member': 'staff' });
+  assert.strictEqual(r.data.user.admin, false);
+  assert.strictEqual(r.data.user.type, '派遣');
+  const payload = JSON.parse(Buffer.from(r.data.token.split('.')[0].replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8'));
+  assert.strictEqual(payload.type, '派遣');
+  assert.strictEqual(payload.admin, false);
+});
+
+test('[派遣] 其他系統驗證一律 FORBIDDEN，派遣系統可以通過', () => {
+  const { post } = makeContext();
+  const token = tokenOf(post, 'pt01', 'ptpass1');
+  assert.strictEqual(post({ action: 'verify', token, system: 'activity-tracker' }).error.code, 'FORBIDDEN');
+  assert.strictEqual(post({ action: 'verify', token, system: 'resource' }).error.code, 'FORBIDDEN');
+  assert.strictEqual(post({ action: 'verify', token, system: 'PT-member' }).data.role, 'staff');
+});
+
+test('[派遣] 派遣帳號不能用帳號管理', () => {
+  const { post } = makeContext();
+  assert.strictEqual(post({ action: 'admin.list', token: tokenOf(post, 'pt01', 'ptpass1') }).error.code, 'FORBIDDEN');
+});
+
+test('[派遣] 管理頁不能幫派遣帳號設其他系統角色或 admin；只設派遣系統可以', () => {
+  const { post } = makeContext();
+  const token = tokenOf(post, 'boss', 'boss123');
+  const base = { account: 'pt02', name: '派遣乙', type: '派遣', active: true, admin: false, roles: { 'PT-member': 'staff' } };
+  const save = acc => post({ action: 'admin.save', token, isNew: true, password: 'ptpass2', account: Object.assign({}, base, acc) });
+  assert.match(save({ roles: { 'PT-member': 'staff', 'activity-tracker': 'staff' } }).error.message, /只能使用派遣人員勤務/);
+  assert.match(save({ admin: true }).error.message, /不能當帳號管理員/);
+  assert.match(save({ type: '外包' }).error.message, /正職或派遣/);
+  const ok = save({});
+  assert.ok(ok.ok, JSON.stringify(ok));
+  assert.strictEqual(ok.data.type, '派遣');
+});
+
+test('[派遣] 類型空白視為正職，既有帳號不受影響', () => {
+  const { post } = makeContext();
+  const r = post({ action: 'login', account: 'amy', password: '0123ab' });
+  assert.strictEqual(r.data.user.type, '正職');
+  assert.strictEqual(r.data.user.roles['activity-tracker'], 'pm');
 });
 
 test('格式錯誤與未知動作回 VALIDATION，不洩漏內部錯誤', () => {

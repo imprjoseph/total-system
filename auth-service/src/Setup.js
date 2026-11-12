@@ -26,6 +26,9 @@ function setupAccounts() {
   sheet.getRange(1, passwordCol, sheet.getMaxRows(), 1).setNumberFormat('@');
   const dataRows = Math.max(sheet.getMaxRows() - 1, 1);
   ['active', 'admin'].forEach(c => sheet.getRange(2, header.indexOf(c) + 1, dataRows, 1).insertCheckboxes());
+  const typeRule = SpreadsheetApp.newDataValidation()
+    .requireValueInList([ACCOUNT_TYPES.STAFF, ACCOUNT_TYPES.DISPATCH], true).setAllowInvalid(false).build();
+  sheet.getRange(2, header.indexOf('type') + 1, dataRows, 1).setDataValidation(typeRule);
   // 角色欄做成下拉選單，直接改試算表時也只能選有效角色，和帳號管理頁的檢查一致。
   SYSTEMS.forEach(s => {
     const rule = SpreadsheetApp.newDataValidation().requireValueInList(s.roles, true).setAllowInvalid(false).build();

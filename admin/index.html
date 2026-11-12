@@ -58,6 +58,7 @@
   .chip { border-radius:999px; padding:0 8px; font-size:.74rem; background:var(--soft); color:var(--green); white-space:nowrap }
   .chip.admin { background:#fff0df; color:#7c3e15; font-weight:700 }
   .chip.none { background:transparent; color:#8a9a96; padding:0 }
+  .chip.dispatch { background:#e8eef9; color:#2a4a86; font-weight:700 }
   .state { font-size:.76rem; font-weight:700; white-space:nowrap }
   .state.on { color:var(--green) }
   .state.off { color:#8a9a96 }
@@ -172,6 +173,11 @@
           <label for="f-dept">部門</label>
           <input id="f-dept" autocomplete="off">
         </div>
+        <div class="field">
+          <label for="f-type">帳號類型</label>
+          <select id="f-type"><option value="正職">正職</option><option value="派遣">派遣</option></select>
+          <p class="hint">派遣人員只能使用派遣人員勤務，其他系統一律不能進入</p>
+        </div>
       </div>
       <div class="field">
         <label for="f-note">備註</label>
@@ -227,6 +233,7 @@
   const $ = id => document.getElementById(id);
   let accounts = [];
   let systems = [];
+  let dispatchSystems = [];
   let filter = 'active';
   let editing = null;
 
@@ -265,6 +272,7 @@
       const data = await ImprSSO.request('admin.list');
       accounts = data.accounts;
       systems = data.systems;
+      dispatchSystems = data.dispatchSystems || [];
       $('content').hidden = false;
       $('add').hidden = false;
       render();
@@ -307,6 +315,7 @@
       const acc = el('td', 'acc');
       acc.append(el('b', null, a.name), el('small', null, a.account + (a.email ? '・' + a.email : '')));
       const chips = el('div', 'chips');
+      if (a.type === '派遣') chips.append(el('span', 'chip dispatch', '派遣'));
       if (a.admin) chips.append(el('span', 'chip admin', '帳號管理員'));
       Object.keys(a.roles).forEach(id => chips.append(el('span', 'chip', systemName(id) + '：' + a.roles[id])));
       if (!a.admin && !Object.keys(a.roles).length) chips.append(el('span', 'chip none', '沒有系統權限'));
@@ -349,11 +358,14 @@
     $('f-note').value = isNew ? '' : editing.note;
     $('f-active').checked = isNew ? true : editing.active;
     $('f-admin').checked = isNew ? false : editing.admin;
+    $('f-type').value = isNew ? '正職' : (editing.type || '正職');
     // 自己的啟用與管理權限不能在這裡拿掉，帳號中心也會擋；先在畫面上鎖住，免得按了才被拒絕。
     const self = !isNew && editing.account === viewer.account;
     $('f-active').disabled = self;
     $('f-admin').disabled = self;
     renderRoleSelects(isNew ? {} : editing.roles);
+    $('f-type').disabled = self;
+    applyType();
     $('new-pw').hidden = !isNew;
     $('f-password').value = '';
     $('reset-form').hidden = isNew;
@@ -363,6 +375,18 @@
     $('reset-msg').classList.remove('ok');
     $('dlg').showModal();
     (isNew ? $('f-account') : $('f-name')).focus();
+  }
+
+  // 派遣帳號：其他系統的權限和帳號管理員鎖住並清空，畫面就和帳號中心的限制一致。
+  function applyType() {
+    const dispatch = $('f-type').value === '派遣';
+    $('roles').querySelectorAll('select').forEach(sel => {
+      const locked = dispatch && !dispatchSystems.includes(sel.dataset.system);
+      if (locked) sel.value = '';
+      sel.disabled = locked;
+    });
+    if (dispatch) $('f-admin').checked = false;
+    $('f-admin').disabled = dispatch || (editing && editing.account === viewer.account);
   }
 
   function generatePassword() {
@@ -388,6 +412,7 @@
       name: $('f-name').value.trim(),
       email: $('f-email').value.trim(),
       dept: $('f-dept').value.trim(),
+      type: $('f-type').value,
       note: $('f-note').value.trim(),
       active: $('f-active').checked,
       admin: $('f-admin').checked,
@@ -434,6 +459,7 @@
   }));
   document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => $('dlg').close()));
   $('add').addEventListener('click', () => openDialog(null));
+  $('f-type').addEventListener('change', applyType);
   $('query').addEventListener('input', render);
   document.querySelectorAll('[data-filter]').forEach(b => b.addEventListener('click', () => {
     filter = b.dataset.filter;

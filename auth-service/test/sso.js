@@ -112,6 +112,7 @@ test('getUser 帶出 admin 旗標；request 自動附上憑證', async () => {
   });
   store.impr_sso_token = token({ sub: 'boss', admin: true, exp: Date.now() / 1000 + 60 });
   assert.strictEqual(sso.getUser().admin, true);
+  assert.strictEqual(sso.getUser().type, '正職', '舊憑證沒有 type 時視為正職');
   await sso.request('admin.list', { token: 'spoofed' });
   assert.strictEqual(sent.action, 'admin.list');
   assert.strictEqual(sent.token, store.impr_sso_token, '一律用目前憑證，呼叫端不能覆蓋');

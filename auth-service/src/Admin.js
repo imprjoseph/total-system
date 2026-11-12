@@ -15,7 +15,7 @@ function adminList_(token) {
     return Object.assign(user, { active: row.active, note: String(row.note || '') });
   });
   accounts.sort((a, b) => (a.active === b.active ? (a.account < b.account ? -1 : 1) : (a.active ? -1 : 1)));
-  return { accounts, systems: SYSTEMS };
+  return { accounts, systems: SYSTEMS, accountTypes: [ACCOUNT_TYPES.STAFF, ACCOUNT_TYPES.DISPATCH], dispatchSystems: DISPATCH_SYSTEMS };
 }
 
 /**
@@ -45,6 +45,7 @@ function adminSave_(token, input, isNew, password) {
       if (h === 'password') return existing ? existing.password : String(password);
       if (h === 'active') return data.active;
       if (h === 'admin') return data.admin;
+      if (h === 'type') return data.type;
       if (EDITABLE_TEXT_FIELDS_.indexOf(h) !== -1) return data[h];
       if (SYSTEM_COLUMNS.indexOf(h) !== -1) return data.roles[h] || '';
       return existing ? existing[h] : '';
@@ -79,7 +80,8 @@ function adminResetPassword_(token, account, password) {
 
 function requireAdmin_(token) {
   const row = activeAccountFor_(token);
-  if (!row.admin) throw new AuthError('FORBIDDEN', '只有帳號管理員可以管理帳號');
+  // 用 publicUser_ 的判斷而不是原始欄位：派遣帳號就算在試算表被勾了 admin 也不能管理帳號。
+  if (!publicUser_(row).admin) throw new AuthError('FORBIDDEN', '只有帳號管理員可以管理帳號');
   return row;
 }
 
@@ -88,7 +90,10 @@ function validateAccountInput_(input) {
   if (!ACCOUNT_PATTERN_.test(account)) {
     throw new AuthError('VALIDATION', '帳號只能用 2–32 個英文小寫、數字或 . _ -');
   }
-  const out = { account, active: input.active === true, admin: input.admin === true, roles: {} };
+  const type = String(input.type || ACCOUNT_TYPES.STAFF).trim();
+  if (type !== ACCOUNT_TYPES.STAFF && type !== ACCOUNT_TYPES.DISPATCH) throw new AuthError('VALIDATION', '帳號類型只能是正職或派遣');
+  const out = { account, type, active: input.active === true, admin: input.admin === true, roles: {} };
+  if (type === ACCOUNT_TYPES.DISPATCH && out.admin) throw new AuthError('VALIDATION', '派遣人員不能當帳號管理員');
   EDITABLE_TEXT_FIELDS_.forEach(f => { out[f] = String(input[f] == null ? '' : input[f]).trim(); });
   if (!out.name) throw new AuthError('VALIDATION', '請填姓名');
   // email 用來對應各系統的負責人欄位，格式錯了工作台就找不到這個人的待辦。
@@ -99,6 +104,9 @@ function validateAccountInput_(input) {
     const role = String(roles[s.id] == null ? '' : roles[s.id]).trim();
     if (role && s.roles.indexOf(role) === -1) {
       throw new AuthError('VALIDATION', s.name + '沒有「' + role + '」這個角色');
+    }
+    if (role && type === ACCOUNT_TYPES.DISPATCH && DISPATCH_SYSTEMS.indexOf(s.id) === -1) {
+      throw new AuthError('VALIDATION', '派遣人員只能使用派遣人員勤務，不能設定' + s.name + '的權限');
     }
     out.roles[s.id] = role;
   });
