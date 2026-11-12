@@ -20,7 +20,7 @@ const BASE_COLUMNS = ['account', 'password', 'name', 'email', 'dept', 'active', 
 // 每個系統一欄角色，欄名就是入口網站上的系統 id；空白代表不能使用該系統。
 const SYSTEM_COLUMNS = [
   'activity-tracker', 'impr-attendance', 'PT-member', 'project-pulse-impr',
-  'custormers-and-suppliers', 'resource', 'speaker-platform',
+  'custormers-and-suppliers', 'resource', 'speaker-platform', 'ai-design',
 ];
 
 class AuthError extends Error {

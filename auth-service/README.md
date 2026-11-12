@@ -22,7 +22,7 @@
 | name / email / dept | 姓名、email、部門 |
 | active | 勾選才能登入；離職或停權時取消勾選 |
 | note | 備註 |
-| 系統欄（`activity-tracker`、`impr-attendance`…） | 這個人在該系統的角色，例如 `admin`、`manager`、`staff`；空白代表不能使用 |
+| 系統欄（`activity-tracker`、`impr-attendance`…、`ai-design`） | 這個人在該系統的角色，例如 `admin`、`manager`、`staff`；空白代表不能使用 |
 
 **這份試算表只能分享給管理者本人。** 密碼是明碼，任何能打開它的人都看得到全公司密碼；其他系統一律透過帳號中心驗證，不需要、也不應該直接讀這張表。
 

@@ -157,6 +157,7 @@
     { id:"resource", managed:true, category:"業務與資源", name:"物資借用與 SOP", description:"物資清冊、借還紀錄與標準作業程序。", keywords:"器材 資源 設備", path:"resource", review:true },
     { id:"tender-alert", category:"業務與資源", name:"標案快報", description:"政府採購公告篩選及通知。", keywords:"採購 投標 商機", url:"https://github.com/imprjoseph/tender-alert/actions", action:"查看快報紀錄" },
     { id:"ckd2026-poster-registration", category:"專用系統", name:"壁報競賽", description:"參賽報名、補件、書審及評分。", keywords:"學會 競賽", path:"ckd2026-poster-registration" },
+    { id:"ai-design", managed:true, repo:false, category:"專用系統", name:"AI 平面設計", description:"以 AI 產出活動主視覺、海報與社群圖文。", keywords:"設計 海報 KV 主視覺 社群 圖片 AI" },
     { id:"ESG-WEB", category:"專用系統", name:"GreenStep ESG", description:"ESG 任務、活動與獎勵管理。", keywords:"永續", path:"ESG-WEB" },
     { id:"IMPR-AI-Conference-Hub", category:"專用系統", name:"會議資訊平台", description:"雙語議程、常見問題、術語及觀眾提問。", keywords:"QA FAQ 議程", path:"IMPR-AI-Conference-Hub" }
   ];
@@ -228,7 +229,8 @@
       });
       actions.append(settings);
     }
-    actions.append(link("GitHub", "https://github.com/imprjoseph/" + system.id, "secondary"));
+    // 沒有放在 GitHub 的系統不顯示 GitHub 連結，免得點到 404。
+    if (system.repo !== false) actions.append(link("GitHub", "https://github.com/imprjoseph/" + system.id, "secondary"));
     return card;
   }
 
