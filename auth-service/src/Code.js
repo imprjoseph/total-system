@@ -124,16 +124,21 @@ function verify_(token, system) {
 }
 
 /**
- * 某系統的人員名單（姓名、email、部門、角色、直屬主管），給各系統同步人員資料，免得在各系統重複輸入。
- * 只給該系統的 admin / manager：他們本來就要看得到部屬，一般同仁不需要全公司名單。
+ * 某系統的人員名單，給各系統同步人員資料、做人名選單，免得在各系統重複輸入。
+ * 該系統的 admin / manager 拿到完整資料（email、直屬主管）以便同步；
+ * 一般同仁只拿到帳號、姓名、部門、角色，夠選「借用人」「負責人」即可，不必看到全公司的 email 與主管關係。
  */
 function directory_(token, system) {
   const me = publicUser_(activeAccountFor_(token));
   if (SYSTEM_COLUMNS.indexOf(system) === -1) throw new AuthError('VALIDATION', '未知的系統：' + system);
-  if (['admin', 'manager'].indexOf(me.roles[system]) === -1) throw new AuthError('FORBIDDEN', '只有該系統的管理員或主管可以讀取人員名單');
+  const myRole = me.roles[system];
+  if (!myRole) throw new AuthError('FORBIDDEN', '你沒有這個系統的使用權限，請聯絡管理者');
+  const full = myRole === 'admin' || myRole === 'manager';
   const users = readAccounts_().rows.filter(r => r.active).map(publicUser_)
     .filter(u => u.roles[system])
-    .map(u => ({ account: u.account, name: u.name, email: u.email, dept: u.dept, manager: u.manager, role: u.roles[system] }));
+    .map(u => full
+      ? { account: u.account, name: u.name, email: u.email, dept: u.dept, manager: u.manager, role: u.roles[system] }
+      : { account: u.account, name: u.name, dept: u.dept, role: u.roles[system] });
   return { system, users };
 }
 

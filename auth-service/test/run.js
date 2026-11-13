@@ -317,9 +317,17 @@ test('[名單] 系統管理員可讀該系統人員名單：只含有角色、�
   assert.deepStrictEqual({ ...amy }, { account: 'amy', name: '王小美', email: 'amy@example.com', dept: '專案部', manager: 'boss', role: 'staff' });
 });
 
-test('[名單] 一般同仁、派遣、未知系統都不能讀名單', () => {
+test('[名單] 一般同仁只拿到帳號、姓名、部門、角色，沒有 email 與主管', () => {
   const { post } = makeContext();
-  assert.strictEqual(post({ action: 'directory', token: tokenOf(post, 'amy', '0123ab'), system: 'impr-attendance' }).error.code, 'FORBIDDEN');
+  const r = post({ action: 'directory', token: tokenOf(post, 'amy', '0123ab'), system: 'impr-attendance' });
+  assert.ok(r.ok, JSON.stringify(r));
+  const boss = r.data.users.find(u => u.account === 'boss');
+  assert.deepStrictEqual(Object.keys(boss).sort(), ['account', 'dept', 'name', 'role']);
+});
+
+test('[名單] 沒有該系統角色、派遣、未知系統都不能讀名單', () => {
+  const { post } = makeContext();
+  assert.strictEqual(post({ action: 'directory', token: tokenOf(post, 'bob', 'secret1'), system: 'impr-attendance' }).error.code, 'FORBIDDEN');
   assert.strictEqual(post({ action: 'directory', token: tokenOf(post, 'pt01', 'ptpass1'), system: 'impr-attendance' }).error.code, 'FORBIDDEN');
   assert.strictEqual(post({ action: 'directory', token: tokenOf(post, 'boss', 'boss123'), system: 'x' }).error.code, 'VALIDATION');
 });
