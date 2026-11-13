@@ -52,10 +52,11 @@ function makeContext() {
   const header = vm.runInContext('BASE_COLUMNS.concat(SYSTEM_COLUMNS)', ctx);
   const rowOf = (o) => header.map(h => (h in o ? o[h] : ''));
   values = [header,
-    rowOf({ account: 'Amy', password: '0123ab', name: '王小美', active: true, 'activity-tracker': 'pm', resource: 'staff' }),
+    rowOf({ account: 'Amy', password: '0123ab', name: '王小美', active: true, 'activity-tracker': 'pm', resource: 'staff',
+      'impr-attendance': 'staff', manager: 'Boss', email: 'amy@example.com', dept: '專案部' }),
     rowOf({ account: 'bob', password: 'secret1', name: '陳大寶', active: '是' }),
     rowOf({ account: 'gone', password: 'secret2', name: '離職者', active: false, resource: 'admin' }),
-    rowOf({ account: 'boss', password: 'boss123', name: '管理者', active: true, admin: true, email: 'boss@example.com' }),
+    rowOf({ account: 'boss', password: 'boss123', name: '管理者', active: true, admin: true, email: 'boss@example.com', 'impr-attendance': 'admin' }),
     // 試算表被手動填了其他系統角色和 admin，也不能生效。
     rowOf({ account: 'pt01', password: 'ptpass1', name: '派遣甲', type: '派遣', active: true, admin: true,
       'PT-member': 'staff', 'activity-tracker': 'pm', resource: 'admin' }),
@@ -73,7 +74,7 @@ test('登入成功：帳號不分大小寫，回傳憑證與角色', () => {
   const r = post({ action: 'login', account: '  amy ', password: '0123ab' });
   assert.ok(r.ok, JSON.stringify(r));
   assert.strictEqual(r.data.user.name, '王小美');
-  assert.deepStrictEqual({ ...r.data.user.roles }, { 'activity-tracker': 'pm', resource: 'staff' });
+  assert.deepStrictEqual({ ...r.data.user.roles }, { 'activity-tracker': 'pm', resource: 'staff', 'impr-attendance': 'staff' });
   assert.match(r.data.token, /^[\w-]+\.[\w-]+$/);
 });
 
@@ -142,7 +143,7 @@ test('verify：有角色回傳角色，沒角色 FORBIDDEN，未知系統 VALIDA
   const { post } = makeContext();
   const { token } = post({ action: 'login', account: 'amy', password: '0123ab' }).data;
   assert.strictEqual(post({ action: 'verify', token, system: 'activity-tracker' }).data.role, 'pm');
-  assert.strictEqual(post({ action: 'verify', token, system: 'impr-attendance' }).error.code, 'FORBIDDEN');
+  assert.strictEqual(post({ action: 'verify', token, system: 'PT-member' }).error.code, 'FORBIDDEN');
   assert.strictEqual(post({ action: 'verify', token, system: 'nope' }).error.code, 'VALIDATION');
 });
 
@@ -294,6 +295,33 @@ test('[派遣] 類型空白視為正職，既有帳號不受影響', () => {
   const r = post({ action: 'login', account: 'amy', password: '0123ab' });
   assert.strictEqual(r.data.user.type, '正職');
   assert.strictEqual(r.data.user.roles['activity-tracker'], 'pm');
+});
+
+// ---------- 直屬主管與人員名單 ----------
+test('[主管] 帳號帶直屬主管（轉小寫），管理頁可設定、不能設自己或不存在的帳號', () => {
+  const { post } = makeContext();
+  assert.strictEqual(post({ action: 'login', account: 'amy', password: '0123ab' }).data.user.manager, 'boss');
+  const token = tokenOf(post, 'boss', 'boss123');
+  const save = manager => post({ action: 'admin.save', token, isNew: false, account: { account: 'bob', name: '陳大寶', active: true, manager, roles: {} } });
+  assert.match(save('bob').error.message, /不能是自己/);
+  assert.match(save('nobody').error.message, /找不到直屬主管/);
+  assert.strictEqual(save('AMY').data.manager, 'amy');
+});
+
+test('[名單] 系統管理員可讀該系統人員名單：只含有角色、啟用中的人，不含密碼', () => {
+  const { post } = makeContext();
+  const r = post({ action: 'directory', token: tokenOf(post, 'boss', 'boss123'), system: 'impr-attendance' });
+  assert.ok(r.ok, JSON.stringify(r));
+  assert.deepStrictEqual(r.data.users.map(u => u.account).sort(), ['amy', 'boss']);
+  const amy = r.data.users.find(u => u.account === 'amy');
+  assert.deepStrictEqual({ ...amy }, { account: 'amy', name: '王小美', email: 'amy@example.com', dept: '專案部', manager: 'boss', role: 'staff' });
+});
+
+test('[名單] 一般同仁、派遣、未知系統都不能讀名單', () => {
+  const { post } = makeContext();
+  assert.strictEqual(post({ action: 'directory', token: tokenOf(post, 'amy', '0123ab'), system: 'impr-attendance' }).error.code, 'FORBIDDEN');
+  assert.strictEqual(post({ action: 'directory', token: tokenOf(post, 'pt01', 'ptpass1'), system: 'impr-attendance' }).error.code, 'FORBIDDEN');
+  assert.strictEqual(post({ action: 'directory', token: tokenOf(post, 'boss', 'boss123'), system: 'x' }).error.code, 'VALIDATION');
 });
 
 test('格式錯誤與未知動作回 VALIDATION，不洩漏內部錯誤', () => {

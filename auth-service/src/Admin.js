@@ -34,6 +34,12 @@ function adminSave_(token, input, isNew, password) {
       assertPassword_(password);
     } else {
       if (!existing) throw new AuthError('NOT_FOUND', '找不到帳號「' + data.account + '」');
+    }
+    if (data.manager) {
+      if (data.manager === data.account) throw new AuthError('VALIDATION', '直屬主管不能是自己');
+      if (!table.rows.some(r => normAccount_(r.account) === data.manager)) throw new AuthError('VALIDATION', '找不到直屬主管帳號「' + data.manager + '」');
+    }
+    if (!isNew) {
       // 管理者不能停用自己或拿掉自己的管理權限，否則最後一位管理者會把自己鎖在外面。
       if (data.account === normAccount_(me.account) && (!data.active || !data.admin)) {
         throw new AuthError('VALIDATION', '不能停用自己或移除自己的管理權限，請由另一位管理者操作');
@@ -46,6 +52,7 @@ function adminSave_(token, input, isNew, password) {
       if (h === 'active') return data.active;
       if (h === 'admin') return data.admin;
       if (h === 'type') return data.type;
+      if (h === 'manager') return data.manager;
       if (EDITABLE_TEXT_FIELDS_.indexOf(h) !== -1) return data[h];
       if (SYSTEM_COLUMNS.indexOf(h) !== -1) return data.roles[h] || '';
       return existing ? existing[h] : '';
@@ -95,6 +102,7 @@ function validateAccountInput_(input) {
   const out = { account, type, active: input.active === true, admin: input.admin === true, roles: {} };
   if (type === ACCOUNT_TYPES.DISPATCH && out.admin) throw new AuthError('VALIDATION', '派遣人員不能當帳號管理員');
   EDITABLE_TEXT_FIELDS_.forEach(f => { out[f] = String(input[f] == null ? '' : input[f]).trim(); });
+  out.manager = normAccount_(input.manager);
   if (!out.name) throw new AuthError('VALIDATION', '請填姓名');
   // email 用來對應各系統的負責人欄位，格式錯了工作台就找不到這個人的待辦。
   if (out.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(out.email)) throw new AuthError('VALIDATION', 'email 格式不正確');

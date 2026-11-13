@@ -17,7 +17,8 @@ const LOCK_SEC = 15 * 60;
 const MIN_PASSWORD_LENGTH = 6;
 
 // admin 勾選的人才能用帳號管理頁；帳號中心本身的權限也放在這張表，管理者不必另外維護一份名單。
-const BASE_COLUMNS = ['account', 'password', 'name', 'email', 'dept', 'type', 'active', 'admin', 'note'];
+// manager：直屬主管的帳號。出勤審核、派遣、週報都要知道「誰的主管是誰」，放在這裡就只維護一次。
+const BASE_COLUMNS = ['account', 'password', 'name', 'email', 'dept', 'manager', 'type', 'active', 'admin', 'note'];
 
 /**
  * 帳號類型。派遣人員只能使用派遣系統：他們不是公司同仁，不該看到客戶、利潤、內部專案等資料。
@@ -81,6 +82,7 @@ function route_(action, b) {
     case 'admin.list': return adminList_(b.token);
     case 'admin.save': return adminSave_(b.token, b.account, b.isNew, b.password);
     case 'admin.resetPassword': return adminResetPassword_(b.token, b.account, b.password);
+    case 'directory': return directory_(b.token, b.system);
   }
   throw new AuthError('VALIDATION', '不支援的動作');
 }
@@ -119,6 +121,20 @@ function verify_(token, system) {
     if (!user.roles[system]) throw new AuthError('FORBIDDEN', '你沒有這個系統的使用權限，請聯絡管理者');
   }
   return { user, role: system ? user.roles[system] : null };
+}
+
+/**
+ * 某系統的人員名單（姓名、email、部門、角色、直屬主管），給各系統同步人員資料，免得在各系統重複輸入。
+ * 只給該系統的 admin / manager：他們本來就要看得到部屬，一般同仁不需要全公司名單。
+ */
+function directory_(token, system) {
+  const me = publicUser_(activeAccountFor_(token));
+  if (SYSTEM_COLUMNS.indexOf(system) === -1) throw new AuthError('VALIDATION', '未知的系統：' + system);
+  if (['admin', 'manager'].indexOf(me.roles[system]) === -1) throw new AuthError('FORBIDDEN', '只有該系統的管理員或主管可以讀取人員名單');
+  const users = readAccounts_().rows.filter(r => r.active).map(publicUser_)
+    .filter(u => u.roles[system])
+    .map(u => ({ account: u.account, name: u.name, email: u.email, dept: u.dept, manager: u.manager, role: u.roles[system] }));
+  return { system, users };
 }
 
 function changePassword_(token, oldPassword, newPassword) {
@@ -211,10 +227,12 @@ function publicUser_(row) {
     if (role) roles[s] = role;
   });
   return {
-    account: row.account,
+    // 一律小寫：各系統用帳號對應主管、負責人，大小寫不同就會對不上
+    account: normAccount_(row.account),
     name: String(row.name || row.account),
     email: String(row.email || ''),
     dept: String(row.dept || ''),
+    manager: normAccount_(row.manager),
     type,
     // 派遣帳號就算在試算表被勾了 admin 也不生效。
     admin: !!row.admin && type !== ACCOUNT_TYPES.DISPATCH,

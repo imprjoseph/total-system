@@ -174,6 +174,11 @@
           <input id="f-dept" autocomplete="off">
         </div>
         <div class="field">
+          <label for="f-manager">直屬主管</label>
+          <select id="f-manager"></select>
+          <p class="hint">出勤、請假、加班的審核會送給這個人</p>
+        </div>
+        <div class="field">
           <label for="f-type">帳號類型</label>
           <select id="f-type"><option value="正職">正職</option><option value="派遣">派遣</option></select>
           <p class="hint">派遣人員只能使用派遣人員勤務，其他系統一律不能進入</p>
@@ -313,7 +318,8 @@
       const tr = el('tr', a.active ? '' : 'off');
       tr.tabIndex = 0;
       const acc = el('td', 'acc');
-      acc.append(el('b', null, a.name), el('small', null, a.account + (a.email ? '・' + a.email : '')));
+      const boss = a.manager && accounts.find(x => x.account === a.manager);
+      acc.append(el('b', null, a.name), el('small', null, a.account + (a.email ? '・' + a.email : '') + (boss ? '・主管 ' + boss.name : '')));
       const chips = el('div', 'chips');
       if (a.type === '派遣') chips.append(el('span', 'chip dispatch', '派遣'));
       if (a.admin) chips.append(el('span', 'chip admin', '帳號管理員'));
@@ -359,6 +365,10 @@
     $('f-active').checked = isNew ? true : editing.active;
     $('f-admin').checked = isNew ? false : editing.admin;
     $('f-type').value = isNew ? '正職' : (editing.type || '正職');
+    // 主管選單只列啟用中的其他帳號；原本的主管若已停用也保留，免得儲存時被默默清掉
+    const managerOptions = accounts.filter(a => a.account !== (editing && editing.account) && (a.active || (editing && a.account === editing.manager)));
+    $('f-manager').replaceChildren(new Option('（無）', ''), ...managerOptions.map(a => new Option(a.name + '（' + a.account + '）' + (a.active ? '' : '・已停用'), a.account)));
+    $('f-manager').value = isNew ? '' : (editing.manager || '');
     // 自己的啟用與管理權限不能在這裡拿掉，帳號中心也會擋；先在畫面上鎖住，免得按了才被拒絕。
     const self = !isNew && editing.account === viewer.account;
     $('f-active').disabled = self;
@@ -413,6 +423,7 @@
       email: $('f-email').value.trim(),
       dept: $('f-dept').value.trim(),
       type: $('f-type').value,
+      manager: $('f-manager').value,
       note: $('f-note').value.trim(),
       active: $('f-active').checked,
       admin: $('f-admin').checked,
