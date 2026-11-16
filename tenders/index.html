@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>標案管理｜imPR 新動力公關</title>
+<!-- 投標金額屬營業秘密：只允許本站程式、只連線到帳號中心與 event-ops API。 -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self'; connect-src https://script.google.com https://script.googleusercontent.com; form-action 'none'; base-uri 'none'">
+<link rel="stylesheet" href="../sso/app.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a href="../portal/"><img class="logo" src="../sso/logo.png" width="300" height="60" alt="imPR 新動力公關"></a>
+    <div class="top-links">
+      <span class="viewer" id="viewer"></span>
+      <a class="portal-link" href="../portal/">系統入口</a>
+      <button type="button" id="logout">登出</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <div>
+      <h1>標案管理</h1>
+      <p>從公告評估、準備文件、投標到開標結果；得標後一鍵轉成專案。新公告請看 <a class="linkish" style="color:#fff" href="https://github.com/imprjoseph/tender-alert/actions" target="_blank" rel="noopener noreferrer">標案快報 ↗</a></p>
+    </div>
+    <button class="btn light" type="button" id="add">＋ 新增標案</button>
+  </section>
+
+  <div id="denied" class="notice" hidden>
+    <p id="denied-msg"></p>
+    <a class="btn" href="../portal/">回到系統入口</a>
+  </div>
+
+  <div id="content">
+    <div class="stats" id="stats"></div>
+    <div class="toolbar">
+      <input id="query" type="search" placeholder="搜尋標案名稱、機關、案號" aria-label="搜尋標案">
+      <div class="seg" role="group" aria-label="標案狀態">
+        <button type="button" data-filter="open" aria-pressed="true">進行中</button>
+        <button type="button" data-filter="won" aria-pressed="false">得標</button>
+        <button type="button" data-filter="closed" aria-pressed="false">未得標／不投</button>
+        <button type="button" data-filter="all" aria-pressed="false">全部</button>
+      </div>
+      <span class="count" id="count" role="status"></span>
+    </div>
+    <div class="table">
+      <table>
+        <thead><tr><th>標案</th><th>截標日</th><th class="num hide-sm">預算</th><th class="hide-sm">負責人</th><th>狀態</th></tr></thead>
+        <tbody id="rows"><tr><td colspan="5" class="empty">載入中…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<dialog id="dlg" aria-labelledby="dlg-title">
+  <form id="form" method="dialog">
+    <div class="dlg-head"><h2 id="dlg-title">標案</h2><button type="button" class="x" id="close" aria-label="關閉">×</button></div>
+    <div class="dlg-body">
+      <p class="sec-title">基本資料</p>
+      <div class="field"><label for="f-title">標案名稱 *</label><input id="f-title" name="title" required maxlength="200"></div>
+      <div class="grid2">
+        <div class="field"><label for="f-agency">招標機關 *</label><input id="f-agency" name="agency" required maxlength="100"></div>
+        <div class="field"><label for="f-no">案號</label><input id="f-no" name="tender_no" maxlength="60"></div>
+      </div>
+      <div class="field"><label for="f-url">公告網址</label><input id="f-url" name="source_url" type="url" placeholder="https://web.pcc.gov.tw/…"></div>
+      <div class="grid2">
+        <div class="field"><label for="f-budget">預算金額（元）</label><input id="f-budget" name="budget_amount" type="number" min="0" step="1"></div>
+        <div class="field"><label for="f-owner">負責人</label><select id="f-owner" name="owner_email"></select></div>
+        <div class="field"><label for="f-announce">公告日</label><input id="f-announce" name="announce_date" type="date"></div>
+        <div class="field"><label for="f-deadline">截標日</label><input id="f-deadline" name="deadline_date" type="date"></div>
+        <div class="field"><label for="f-opening">開標日</label><input id="f-opening" name="opening_date" type="date"></div>
+      </div>
+      <div class="field"><label for="f-decision">評估意見（要不要投、為什麼）</label><textarea id="f-decision" name="decision_note"></textarea></div>
+
+      <p class="sec-title">準備</p>
+      <div class="grid2">
+        <div class="field"><label for="f-bond">押標金（元）</label><input id="f-bond" name="bid_bond" type="number" min="0" step="1"></div>
+      </div>
+      <div class="field"><label for="f-docs">文件清單（一行一項，完成的在前面加 ✓）</label><textarea id="f-docs" name="documents" placeholder="服務建議書&#10;投標廠商聲明書&#10;✓ 押標金票據"></textarea></div>
+
+      <p class="sec-title">投標與結果</p>
+      <div class="grid2">
+        <div class="field"><label for="f-bid">投標金額（元）</label><input id="f-bid" name="bid_amount" type="number" min="0" step="1"></div>
+        <div class="field"><label for="f-award">決標金額（元）</label><input id="f-award" name="award_amount" type="number" min="0" step="1"></div>
+      </div>
+      <div class="field"><label for="f-comp">競爭廠商</label><input id="f-comp" name="competitors" placeholder="以頓號分隔"></div>
+      <div class="field"><label for="f-result">結果檢討</label><textarea id="f-result" name="result_note" placeholder="得標或未得標的原因，下次投標參考"></textarea></div>
+      <p class="msg" id="dlg-msg" role="alert"></p>
+    </div>
+    <div class="dlg-foot">
+      <div id="status-actions" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+      <span class="spacer"></span>
+      <button type="button" class="btn" id="cancel">取消</button>
+      <button type="submit" class="btn primary" id="save">儲存</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="convert" aria-labelledby="cv-title">
+  <form id="cv-form" method="dialog">
+    <div class="dlg-head"><h2 id="cv-title">轉成專案</h2><button type="button" class="x" id="cv-close" aria-label="關閉">×</button></div>
+    <div class="dlg-body">
+      <p class="hint" id="cv-hint"></p>
+      <div class="grid2">
+        <div class="field"><label for="cv-type">活動類型 *</label><input id="cv-type" list="types" required placeholder="選擇或輸入">
+          <datalist id="types"><option value="論壇"><option value="研討會"><option value="記者會"><option value="展覽"><option value="頒獎典禮"><option value="尾牙"><option value="其他"></datalist></div>
+        <div class="field"><label for="cv-venue">地點</label><input id="cv-venue"></div>
+        <div class="field"><label for="cv-start">開始日 *</label><input id="cv-start" type="date" required></div>
+        <div class="field"><label for="cv-end">結束日 *</label><input id="cv-end" type="date" required></div>
+      </div>
+      <p class="msg" id="cv-msg" role="alert"></p>
+    </div>
+    <div class="dlg-foot"><span class="spacer"></span><button type="button" class="btn" id="cv-cancel">取消</button><button type="submit" class="btn primary" id="cv-save">建立專案</button></div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="../sso/sso.js"></script>
+<script src="../sso/event-api.js"></script>
+<script>
+  const viewer = ImprSSO.requireLogin();
+  const STATUS = {
+    evaluating: "評估中", preparing: "準備中", submitted: "已投標", won: "得標", lost: "未得標", skipped: "不投標",
+  };
+  // 與後端 TenderService 的 TENDER_TRANSITIONS_ 一致；這裡只決定顯示哪些按鈕，真正的檢查在後端。
+  const ACTIONS = {
+    evaluating: [["preparing", "決定投標，開始準備"], ["skipped", "不投標"]],
+    preparing: [["submitted", "已送出投標"], ["evaluating", "退回評估"], ["skipped", "不投標"]],
+    submitted: [["won", "得標"], ["lost", "未得標"]],
+    skipped: [["evaluating", "重新評估"]],
+    won: [], lost: [],
+  };
+  const FIELDS = ["title", "agency", "tender_no", "source_url", "budget_amount", "announce_date", "deadline_date",
+    "opening_date", "owner_email", "decision_note", "bid_bond", "documents", "bid_amount", "award_amount", "competitors", "result_note"];
+  const NUMBER_FIELDS = ["budget_amount", "bid_bond", "bid_amount", "award_amount"];
+  const role = viewer && viewer.roles.tender;
+  const isManager = role === "admin" || role === "manager";
+
+  let tenders = [];
+  let people = [];
+  let filter = "open";
+  let editing = null;
+  const $ = s => document.querySelector(s);
+  const today = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
+
+  function el(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  const money = n => n == null || n === "" ? "—" : Number(n).toLocaleString("zh-TW");
+  const daysBetween = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / 86400e3);
+  const isOpen = t => ["evaluating", "preparing", "submitted"].includes(t.status);
+  function ownerName(email) {
+    if (!email) return "—";
+    const p = people.find(x => x.email && x.email.toLowerCase() === email.toLowerCase());
+    return p ? p.name : email;
+  }
+  function toast(text) {
+    const t = $("#toast");
+    t.textContent = text;
+    t.hidden = false;
+    clearTimeout(toast.timer);
+    toast.timer = setTimeout(() => { t.hidden = true; }, 2600);
+  }
+
+  function deadlineCell(t) {
+    const td = el("td");
+    if (!t.deadline_date) { td.textContent = "—"; return td; }
+    td.append(el("span", null, t.deadline_date.replace(/-/g, "/")));
+    if (t.status === "evaluating" || t.status === "preparing") {
+      const d = daysBetween(today, t.deadline_date);
+      td.append(el("small", d < 0 ? "late" : d <= 3 ? "soon" : null, d < 0 ? "　已過截標" : d === 0 ? "　今天截標" : "　剩 " + d + " 天"));
+    }
+    return td;
+  }
+
+  function renderStats() {
+    const open = tenders.filter(isOpen);
+    const due = tenders.filter(t => (t.status === "evaluating" || t.status === "preparing") && t.deadline_date && daysBetween(today, t.deadline_date) <= 14);
+    const year = today.slice(0, 4);
+    const decided = tenders.filter(t => (t.status === "won" || t.status === "lost") && (t.opening_date || t.updated_at || "").slice(0, 4) === year);
+    const won = decided.filter(t => t.status === "won");
+    const stats = [
+      ["進行中", open.length],
+      ["14 天內截標", due.length, due.some(t => t.deadline_date < today)],
+      [year + " 得標", won.length + " 件"],
+      [year + " 得標率", decided.length ? Math.round(won.length / decided.length * 100) + "%" : "—"],
+    ];
+    $("#stats").replaceChildren(...stats.map(([label, value, warn]) => {
+      const box = el("div", "stat" + (warn ? " warn" : ""));
+      box.append(el("b", null, String(value)), el("span", null, label));
+      return box;
+    }));
+  }
+
+  function render() {
+    renderStats();
+    const words = $("#query").value.toLowerCase().trim().split(/\s+/).filter(Boolean);
+    const list = tenders.filter(t => {
+      if (filter === "open" && !isOpen(t)) return false;
+      if (filter === "won" && t.status !== "won") return false;
+      if (filter === "closed" && !["lost", "skipped"].includes(t.status)) return false;
+      const text = [t.title, t.agency, t.tender_no, ownerName(t.owner_email)].join(" ").toLowerCase();
+      return words.every(w => text.includes(w));
+    });
+    $("#count").textContent = list.length + " 件";
+    if (!list.length) {
+      const td = el("td", "empty", tenders.length ? "沒有符合的標案。" : "還沒有標案，按右上角「新增標案」開始。");
+      td.colSpan = 5;
+      const tr = el("tr");
+      tr.append(td);
+      $("#rows").replaceChildren(tr);
+      return;
+    }
+    $("#rows").replaceChildren(...list.map(t => {
+      const tr = el("tr");
+      tr.tabIndex = 0;
+      const name = el("td", "acc");
+      name.append(el("b", null, t.title), el("small", null, [t.agency, t.tender_no].filter(Boolean).join("・")));
+      const state = el("td");
+      state.append(el("span", "chip s-" + t.status, STATUS[t.status] || t.status));
+      if (t.project_id) state.append(el("small", null, " 已轉專案"));
+      tr.append(name, deadlineCell(t), el("td", "num hide-sm", money(t.budget_amount)), el("td", "hide-sm", ownerName(t.owner_email)), state);
+      tr.addEventListener("click", () => openDialog(t));
+      tr.addEventListener("keydown", e => { if (e.key === "Enter") openDialog(t); });
+      return tr;
+    }));
+  }
+
+  function ownerOptions(current) {
+    const select = $("#f-owner");
+    const opts = people.filter(p => p.email).map(p => [p.email, p.name + "（" + p.email + "）"]);
+    if (current && !opts.some(([email]) => email.toLowerCase() === current.toLowerCase())) opts.unshift([current, current]);
+    if (!current) opts.unshift(["", "我（建立者）"]);
+    select.replaceChildren(...opts.map(([value, label]) => { const o = el("option", null, label); o.value = value; return o; }));
+    select.value = current || "";
+    // 只有主管能換負責人（後端也會擋），同仁看得到但不能改。
+    select.disabled = !isManager && !!current;
+  }
+
+  // 後端也會檢查；這裡只是不讓同仁對別人的標案看到一堆按了會被拒絕的按鈕。
+  function canEdit(t) {
+    return !t || isManager || (!!myEmail && String(t.owner_email || "").toLowerCase() === myEmail);
+  }
+  let myEmail = "";
+
+  function openDialog(t) {
+    editing = t;
+    $("#dlg-title").textContent = t ? t.title : "新增標案";
+    $("#dlg-msg").textContent = "";
+    FIELDS.forEach(f => { const input = $("#form").elements[f]; if (input && f !== "owner_email") input.value = t && t[f] != null ? t[f] : ""; });
+    ownerOptions(t && t.owner_email);
+    const editable = canEdit(t);
+    FIELDS.forEach(f => { const input = $("#form").elements[f]; if (input && f !== "owner_email") input.readOnly = !editable; });
+    $("#save").hidden = !editable;
+    const actions = $("#status-actions");
+    actions.replaceChildren();
+    if (t && editable) {
+      (ACTIONS[t.status] || []).forEach(([status, label]) => {
+        const b = el("button", "btn", label);
+        b.type = "button";
+        b.addEventListener("click", () => changeStatus(status, label));
+        actions.append(b);
+      });
+      if (t.status === "won" && !t.project_id) {
+        const b = el("button", "btn primary", "轉成專案");
+        b.type = "button";
+        b.addEventListener("click", openConvert);
+        actions.append(b);
+      }
+    }
+    if (t && t.project_id) actions.append(el("span", "hint", "已轉成專案，請到「活動與任務追蹤」追蹤執行。"));
+    if (t && !editable) actions.append(el("span", "hint", "只有負責人或主管可以修改。"));
+    $("#dlg").showModal();
+  }
+
+  function collect() {
+    const data = {};
+    FIELDS.forEach(f => {
+      const input = $("#form").elements[f];
+      let v = input.value.trim();
+      if (f === "owner_email" && (input.disabled || !v)) return;
+      if (NUMBER_FIELDS.includes(f)) v = v === "" ? null : Number(v);
+      else if (v === "") v = null;
+      data[f] = v;
+    });
+    if (!editing) Object.keys(data).forEach(k => { if (data[k] === null) delete data[k]; });
+    return data;
+  }
+
+  function replaceTender(t) {
+    const i = tenders.findIndex(x => x.id === t.id);
+    if (i >= 0) tenders[i] = t; else tenders.unshift(t);
+    render();
+  }
+
+  async function withBusy(button, msgEl, fn) {
+    button.disabled = true;
+    msgEl.textContent = "";
+    try { await fn(); }
+    catch (e) {
+      msgEl.textContent = e.message + (e.code === "CONFLICT_ERROR" ? "（已重新載入最新資料）" : "");
+      if (e.code === "CONFLICT_ERROR") { await load(); const fresh = tenders.find(x => editing && x.id === editing.id); if (fresh) editing = fresh; }
+    } finally { button.disabled = false; }
+  }
+
+  $("#form").addEventListener("submit", e => {
+    e.preventDefault();
+    withBusy($("#save"), $("#dlg-msg"), async () => {
+      const data = collect();
+      const saved = editing
+        ? await EventApi.call("tender.update", { id: editing.id, expectedUpdatedAt: editing.updated_at, patch: data })
+        : await EventApi.call("tender.create", { tender: data });
+      replaceTender(saved);
+      $("#dlg").close();
+      toast(editing ? "已儲存" : "已新增標案");
+    });
+  });
+
+  function changeStatus(status, label) {
+    const button = [...$("#status-actions").children].find(b => b.textContent === label);
+    withBusy(button, $("#dlg-msg"), async () => {
+      // 先存畫面上的修改，再改狀態，免得改了金額又按「得標」結果金額沒存到。
+      let current = editing;
+      const data = collect();
+      const changed = Object.keys(data).some(k => (data[k] ?? null) !== (current[k] ?? null));
+      if (changed) current = await EventApi.call("tender.update", { id: current.id, expectedUpdatedAt: current.updated_at, patch: data });
+      const saved = await EventApi.call("tender.setStatus", { id: current.id, expectedUpdatedAt: current.updated_at, status });
+      replaceTender(saved);
+      openDialog(saved);
+      toast("已改成「" + STATUS[status] + "」");
+    });
+  }
+
+  function openConvert() {
+    $("#cv-hint").textContent = "會建立專案「" + editing.title + "」，客戶：" + editing.agency + "，負責人沿用標案負責人。";
+    $("#cv-msg").textContent = "";
+    $("#convert").showModal();
+  }
+
+  $("#cv-form").addEventListener("submit", e => {
+    e.preventDefault();
+    withBusy($("#cv-save"), $("#cv-msg"), async () => {
+      const project = { project_type: $("#cv-type").value.trim(), start_date: $("#cv-start").value, end_date: $("#cv-end").value };
+      if ($("#cv-venue").value.trim()) project.venue = $("#cv-venue").value.trim();
+      const r = await EventApi.call("tender.convertToProject", { id: editing.id, expectedUpdatedAt: editing.updated_at, project });
+      replaceTender(r.tender);
+      $("#convert").close();
+      openDialog(r.tender);
+      toast("已建立專案「" + r.project.name + "」");
+    });
+  });
+
+  async function load() {
+    const data = await EventApi.call("tender.list");
+    tenders = data.tenders;
+    myEmail = String(data.myEmail || "").toLowerCase();
+    render();
+  }
+
+  if (viewer) {
+    $("#viewer").textContent = viewer.name;
+    $("#logout").addEventListener("click", () => ImprSSO.logout());
+    $("#add").addEventListener("click", () => openDialog(null));
+    $("#close").addEventListener("click", () => $("#dlg").close());
+    $("#cancel").addEventListener("click", () => $("#dlg").close());
+    $("#cv-close").addEventListener("click", () => $("#convert").close());
+    $("#cv-cancel").addEventListener("click", () => $("#convert").close());
+    $("#query").addEventListener("input", render);
+    document.querySelectorAll(".seg button").forEach(b => b.addEventListener("click", () => {
+      filter = b.dataset.filter;
+      document.querySelectorAll(".seg button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+      render();
+    }));
+    if (!role) {
+      $("#content").hidden = true;
+      $("#add").hidden = true;
+      $("#denied").hidden = false;
+      $("#denied-msg").textContent = "你沒有標案管理的使用權限，請聯絡系統管理者在帳號中心開通。";
+    } else {
+      // 人員名單用來選負責人、顯示姓名；主管拿得到 email，同仁只拿得到姓名（帳號中心的規則）。
+      ImprSSO.request("directory", { system: "tender" }).then(d => {
+        people = d.users || [];
+        render();
+      }).catch(() => {});
+      load().catch(e => {
+        if (e.code === "FORBIDDEN") {
+          $("#content").hidden = true;
+          $("#add").hidden = true;
+          $("#denied").hidden = false;
+          $("#denied-msg").textContent = e.message;
+          return;
+        }
+        $("#rows").replaceChildren(Object.assign(el("tr"), { innerHTML: "" }));
+        const td = el("td", "empty", "載入失敗：" + e.message);
+        td.colSpan = 5;
+        $("#rows").firstChild.append(td);
+      });
+    }
+  }
+</script>
+</body>
+</html>

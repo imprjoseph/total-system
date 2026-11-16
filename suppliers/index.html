@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>供應商管理｜imPR 新動力公關</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self'; connect-src https://script.google.com https://script.googleusercontent.com; form-action 'none'; base-uri 'none'">
+<link rel="stylesheet" href="../sso/app.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a href="../portal/"><img class="logo" src="../sso/logo.png" width="300" height="60" alt="imPR 新動力公關"></a>
+    <div class="top-links">
+      <span class="viewer" id="viewer"></span>
+      <a class="portal-link" href="../portal/">系統入口</a>
+      <button type="button" id="logout">登出</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <div>
+      <h1>供應商管理</h1>
+      <p>全公司共用一份供應商名單；專案預約檔期、結案評分都用這裡的資料。</p>
+    </div>
+    <button class="btn light" type="button" id="add">＋ 新增供應商</button>
+  </section>
+
+  <div id="denied" class="notice" hidden>
+    <p id="denied-msg"></p>
+    <a class="btn" href="../portal/">回到系統入口</a>
+  </div>
+
+  <div id="content">
+    <div class="toolbar">
+      <input id="query" type="search" placeholder="搜尋名稱、服務項目、統編、聯絡人" aria-label="搜尋供應商">
+      <select id="cat" class="btn" aria-label="類別"><option value="">全部類別</option></select>
+      <span class="count" id="count" role="status"></span>
+    </div>
+    <div class="table">
+      <table>
+        <thead><tr><th>供應商</th><th>類別</th><th class="hide-sm">聯絡人</th><th class="num">評價</th></tr></thead>
+        <tbody id="rows"><tr><td colspan="4" class="empty">載入中…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<dialog id="dlg" aria-labelledby="dlg-title">
+  <form id="form" method="dialog">
+    <div class="dlg-head"><h2 id="dlg-title">供應商</h2><button type="button" class="x" id="close" aria-label="關閉">×</button></div>
+    <div class="dlg-body">
+      <div class="field"><label for="f-name">名稱 *</label><input id="f-name" name="name" required maxlength="120"></div>
+      <div class="grid2">
+        <div class="field"><label for="f-cat">類別</label><input id="f-cat" name="category" list="cats" placeholder="選擇或輸入"><datalist id="cats"></datalist></div>
+        <div class="field"><label for="f-tax">統一編號</label><input id="f-tax" name="tax_id" inputmode="numeric" maxlength="8" pattern="\d{8}" title="8 碼數字"></div>
+      </div>
+      <div class="field"><label for="f-items">服務項目</label><input id="f-items" name="service_items" placeholder="例：LED 螢幕、直播導播"></div>
+      <div class="grid2">
+        <div class="field"><label for="f-contact">聯絡人</label><input id="f-contact" name="contact_name"></div>
+        <div class="field"><label for="f-phone">電話</label><input id="f-phone" name="contact_phone" type="tel"></div>
+      </div>
+      <div class="field"><label for="f-email">Email</label><input id="f-email" name="contact_email" type="email"></div>
+      <div class="field"><label for="f-note">備註</label><textarea id="f-note" name="note"></textarea></div>
+      <p class="hint" id="rating-hint"></p>
+      <p class="msg" id="dlg-msg" role="alert"></p>
+    </div>
+    <div class="dlg-foot"><span class="spacer"></span><button type="button" class="btn" id="cancel">取消</button><button type="submit" class="btn primary" id="save">儲存</button></div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="../sso/sso.js"></script>
+<script src="../sso/event-api.js"></script>
+<script>
+  const viewer = ImprSSO.requireLogin();
+  // 與活動與任務追蹤的供應商類別一致，兩邊選單才不會出現「音響」「音響工程」兩種寫法。
+  const CATEGORIES = ["場地", "音響", "燈光", "舞台", "視訊／LED", "攝影／錄影", "印刷／輸出", "佈置／花藝", "餐飲", "交通", "住宿", "主持／表演", "口譯", "人力", "設計", "其他"];
+  const FIELDS = ["name", "category", "service_items", "tax_id", "contact_name", "contact_phone", "contact_email", "note"];
+  let suppliers = [];
+  let editing = null;
+  const $ = s => document.querySelector(s);
+
+  function el(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function toast(text) {
+    const t = $("#toast");
+    t.textContent = text;
+    t.hidden = false;
+    clearTimeout(toast.timer);
+    toast.timer = setTimeout(() => { t.hidden = true; }, 2600);
+  }
+  const allCategories = () => [...new Set(CATEGORIES.concat(suppliers.map(s => s.category).filter(Boolean)))];
+
+  function render() {
+    const cat = $("#cat").value;
+    const words = $("#query").value.toLowerCase().trim().split(/\s+/).filter(Boolean);
+    const list = suppliers.filter(s => (!cat || s.category === cat) &&
+      words.every(w => [s.name, s.category, s.service_items, s.tax_id, s.contact_name, s.contact_phone, s.note].join(" ").toLowerCase().includes(w)))
+      .sort((a, b) => a.name.localeCompare(b.name, "zh-Hant"));
+    $("#count").textContent = list.length + " 家";
+    if (!list.length) {
+      const tr = el("tr");
+      const td = el("td", "empty", suppliers.length ? "沒有符合的供應商。" : "還沒有供應商。");
+      td.colSpan = 4;
+      tr.append(td);
+      $("#rows").replaceChildren(tr);
+      return;
+    }
+    $("#rows").replaceChildren(...list.map(s => {
+      const tr = el("tr");
+      tr.tabIndex = 0;
+      const name = el("td", "acc");
+      name.append(el("b", null, s.name), el("small", null, [s.service_items, s.tax_id && "統編 " + s.tax_id].filter(Boolean).join("・")));
+      const cat = el("td");
+      cat.append(s.category ? el("span", "chip", s.category) : el("span", "chip none", "—"));
+      const contact = el("td", "acc hide-sm");
+      contact.append(el("b", null, s.contact_name || "—"), el("small", null, s.contact_phone || ""));
+      const rating = el("td", "num", s.rating_count ? Number(s.avg_rating).toFixed(1) + " ★（" + s.rating_count + "）" : "—");
+      tr.append(name, cat, contact, rating);
+      tr.addEventListener("click", () => openDialog(s));
+      tr.addEventListener("keydown", e => { if (e.key === "Enter") openDialog(s); });
+      return tr;
+    }));
+  }
+
+  function renderCategories() {
+    const current = $("#cat").value;
+    const cats = allCategories();
+    $("#cat").replaceChildren(el("option", null, "全部類別"), ...cats.map(c => { const o = el("option", null, c); o.value = c; return o; }));
+    $("#cat").firstChild.value = "";
+    $("#cat").value = cats.includes(current) ? current : "";
+    $("#cats").replaceChildren(...cats.map(c => { const o = el("option"); o.value = c; return o; }));
+  }
+
+  function openDialog(s) {
+    editing = s;
+    $("#dlg-title").textContent = s ? s.name : "新增供應商";
+    $("#dlg-msg").textContent = "";
+    FIELDS.forEach(f => { $("#form").elements[f].value = s && s[f] != null ? s[f] : ""; });
+    // 評分只能由專案結案時評，這裡唯讀，避免有人手改分數。
+    $("#rating-hint").textContent = s && s.rating_count
+      ? "平均評價 " + Number(s.avg_rating).toFixed(1) + " 分，共 " + s.rating_count + " 次（專案結案時評分，不能手改）"
+      : "評價會在專案結案時由專案負責人評分。";
+    $("#dlg").showModal();
+  }
+
+  $("#form").addEventListener("submit", async e => {
+    e.preventDefault();
+    const button = $("#save");
+    button.disabled = true;
+    $("#dlg-msg").textContent = "";
+    const data = {};
+    FIELDS.forEach(f => {
+      const v = $("#form").elements[f].value.trim();
+      if (v || editing) data[f] = v || null;
+    });
+    // 同名供應商擋下來：名單分散成兩筆，檔期與評分就各算各的。
+    const dup = suppliers.find(s => s.name.trim() === (data.name || "") && (!editing || s.id !== editing.id));
+    if (dup) {
+      $("#dlg-msg").textContent = "已經有同名的供應商「" + dup.name + "」，請直接修改那一筆。";
+      button.disabled = false;
+      return;
+    }
+    try {
+      const saved = editing
+        ? await EventApi.call("supplier.update", { id: editing.id, expectedUpdatedAt: editing.updated_at, patch: data })
+        : await EventApi.call("supplier.create", { supplier: data });
+      const i = suppliers.findIndex(s => s.id === saved.id);
+      if (i >= 0) suppliers[i] = saved; else suppliers.push(saved);
+      renderCategories();
+      render();
+      $("#dlg").close();
+      toast(editing ? "已儲存" : "已新增供應商");
+    } catch (err) {
+      $("#dlg-msg").textContent = err.message;
+      if (err.code === "CONFLICT_ERROR") load();
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  async function load() {
+    suppliers = await EventApi.call("supplier.list");
+    renderCategories();
+    render();
+  }
+
+  function deny(message) {
+    $("#content").hidden = true;
+    $("#add").hidden = true;
+    $("#denied").hidden = false;
+    $("#denied-msg").textContent = message;
+  }
+
+  if (viewer) {
+    $("#viewer").textContent = viewer.name;
+    $("#logout").addEventListener("click", () => ImprSSO.logout());
+    $("#add").addEventListener("click", () => openDialog(null));
+    $("#close").addEventListener("click", () => $("#dlg").close());
+    $("#cancel").addEventListener("click", () => $("#dlg").close());
+    $("#query").addEventListener("input", render);
+    $("#cat").addEventListener("change", render);
+    if (!viewer.roles["activity-tracker"]) {
+      deny("你沒有供應商管理的使用權限（帳號中心「活動與任務追蹤」角色），請聯絡系統管理者開通。");
+    } else {
+      load().catch(e => {
+        if (e.code === "FORBIDDEN") return deny(e.message);
+        const tr = el("tr");
+        const td = el("td", "empty", "載入失敗：" + e.message);
+        td.colSpan = 4;
+        tr.append(td);
+        $("#rows").replaceChildren(tr);
+      });
+    }
+  }
+</script>
+</body>
+</html>

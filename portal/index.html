@@ -186,7 +186,13 @@
     { id:"PT-member", managed:true, category:"人力與出勤", name:"派遣人員勤務", description:"派遣人員出勤、請假、加班及工作回報。", keywords:"工讀 人力 打卡", path:"PT-member" },
     { id:"project-pulse-impr", managed:true, category:"人力與出勤", name:"工時與週報", description:"每週投入工時、加班原因及工作卡點。", keywords:"人力 報表", path:"project-pulse-impr", review:true },
     { id:"custormers-and-suppliers", managed:true, category:"業務與資源", name:"客戶與供應商管理", description:"客戶、廠商、聯絡人及往來紀錄。", keywords:"CRM 供應商 業務", path:"custormers-and-suppliers" },
-    { id:"resource", managed:true, category:"業務與資源", name:"物資借用與 SOP", description:"物資清冊、借還紀錄與標準作業程序。", keywords:"器材 資源 設備", path:"resource", review:true },
+    { id:"resource", managed:true, category:"業務與資源", name:"公司資源管理", description:"物資借還、媒體記者、案例、預算與帳密大全。", keywords:"器材 資源 設備", path:"resource", review:true },
+    // 資材、派遣、SOP 都在物資系統裡，role 指出用哪個系統的角色決定看不看得到，hash 直接開到那一頁。
+    { id:"inventory", role:"resource", repo:"resource", category:"業務與資源", name:"資材管理", description:"資材清冊、存放位置、借出數量與管理者。", keywords:"物資 器材 設備 庫存 借用", path:"resource", hash:"inventory" },
+    { id:"personnel", role:"resource", repo:"resource", category:"人力與出勤", name:"派遣人員管理", description:"派遣與工讀名冊、區域、合約期間、時薪及評價。", keywords:"派遣 工讀 人力 名冊 時薪", path:"resource", hash:"personnel" },
+    { id:"sops", role:"resource", repo:"resource", category:"業務與資源", name:"SOP 標準作業", description:"各類活動與行政的標準作業程序與檔案。", keywords:"SOP 作業程序 手冊 流程", path:"resource", hash:"sops" },
+    { id:"suppliers", role:"activity-tracker", repo:"total-system", category:"業務與資源", name:"供應商管理", description:"全公司唯一的供應商名單：類別、服務項目、統編、聯絡人與評價。", keywords:"供應商 廠商 統編 外包 評價", path:"total-system/suppliers" },
+    { id:"tender", repo:"total-system", category:"業務與資源", name:"標案管理", description:"評估、準備、投標到開標結果，得標一鍵轉成專案。", keywords:"標案 投標 採購 截標 開標 押標金 得標", path:"total-system/tenders", managed:true },
     { id:"tender-alert", category:"業務與資源", name:"標案快報", description:"政府採購公告篩選及通知。", keywords:"採購 投標 商機", url:"https://github.com/imprjoseph/tender-alert/actions", action:"查看快報紀錄" },
     { id:"ckd2026-poster-registration", category:"專用系統", name:"壁報競賽", description:"參賽報名、補件、書審及評分。", keywords:"學會 競賽", path:"ckd2026-poster-registration" },
     { id:"ai-design", managed:true, repo:false, category:"專用系統", name:"AI 平面設計", description:"以 AI 產出活動主視覺、海報與社群圖文。", keywords:"設計 海報 KV 主視覺 社群 圖片 AI" },
@@ -236,7 +242,7 @@
     const actions = card.querySelector(".actions");
     let saved = "";
     try { if (custom[system.id]) saved = httpsUrl(custom[system.id]); } catch {}
-    const url = saved || system.url || (system.path && "https://imprjoseph.github.io/" + system.path + "/");
+    const url = saved || system.url || (system.path && "https://imprjoseph.github.io/" + system.path + "/" + (system.hash ? "#" + system.hash : ""));
 
     const status = card.querySelector(".state");
     if (!url || (system.review && !saved)) {
@@ -263,7 +269,7 @@
       actions.append(settings);
     }
     // 沒有放在 GitHub 的系統不顯示 GitHub 連結，免得點到 404。
-    if (system.repo !== false) actions.append(link("GitHub", "https://github.com/imprjoseph/" + system.id, "secondary"));
+    if (system.repo !== false) actions.append(link("GitHub", "https://github.com/imprjoseph/" + (system.repo || system.id), "secondary"));
     return card;
   }
 
@@ -271,7 +277,8 @@
     const words = query.value.normalize("NFKC").toLowerCase().trim().split(/\s+/);
     const matches = systems.filter(system => {
       // managed 的系統由帳號中心管權限，沒有角色就不列出，避免同事點進去才發現不能用。
-      if (system.managed && !(viewer && viewer.roles[system.id])) return false;
+      const roleId = system.role || system.id;
+      if ((system.managed || system.role) && !(viewer && viewer.roles[roleId])) return false;
       // 派遣人員只看得到派遣系統，連對外的活動系統也不列（帳號中心另外擋住其他系統的驗證）。
       if (viewer && viewer.type === "派遣" && !DISPATCH_SYSTEMS.includes(system.id)) return false;
       const content = [system.id, system.name, system.category, system.description, system.keywords].join(" ").toLowerCase();
@@ -415,6 +422,14 @@
         meta.append(el("span", a.overdue ? "late" : null, dueLabel(a.due_date, data.today)), "・" + a.project_name);
         link.append(meta);
       }, "目前沒有指派給你的待辦。"), c.myOpen),
+      ...(data.myTenders && data.myTenders.length ? [panel("標案截標", [["14 天內 " + data.myTenders.length, data.myTenders.some(t => t.overdue)]],
+        itemList(data.myTenders, (t, link) => {
+          link.href = "../tenders/";
+          link.append(el("span", "wb-title", t.title));
+          const meta = el("span", "wb-meta");
+          meta.append(el("span", t.overdue ? "late" : null, t.overdue ? "已過截標" : "截標 " + dueLabel(t.deadline_date, data.today)), "・" + t.agency);
+          link.append(meta);
+        }, ""), data.myTenders.length)] : []),
       panel("我負責的專案", [], itemList(data.myProjects, projectItem(data.today), "目前沒有你負責的進行中專案。"), data.myProjects.length),
       panel("本週活動", [], itemList(data.eventsThisWeek, projectItem(data.today), "這 7 天內沒有活動。"), data.eventsThisWeek.length),
     );

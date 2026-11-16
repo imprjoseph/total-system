@@ -37,9 +37,11 @@ const SYSTEMS = [
   { id: 'PT-member', name: '派遣人員勤務', roles: ['admin', 'manager', 'staff'] },
   { id: 'project-pulse-impr', name: '工時與週報', roles: ['admin', 'manager', 'staff'] },
   { id: 'custormers-and-suppliers', name: '客戶與供應商管理', roles: ['SUPER_ADMIN', 'SALES', 'PM'] },
-  { id: 'resource', name: '物資借用與 SOP', roles: ['admin', 'manager', 'staff'] },
+  { id: 'resource', name: '公司資源管理（資材、派遣、SOP）', roles: ['admin', 'manager', 'staff'] },
   { id: 'speaker-platform', name: '講師接待', roles: ['admin', 'staff'] },
   { id: 'ai-design', name: 'AI 平面設計', roles: ['admin', 'designer', 'staff'] },
+  // admin / manager 可改所有標案；staff 只能改自己負責的（見 event-ops TenderService）
+  { id: 'tender', name: '標案管理', roles: ['admin', 'manager', 'staff'] },
 ];
 const SYSTEM_COLUMNS = SYSTEMS.map(s => s.id);
 
