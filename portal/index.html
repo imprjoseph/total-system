@@ -178,6 +178,8 @@
   // 入口網站本身就要登入：只有登入後才知道這個人能用哪些系統。
   const viewer = ImprSSO.requireLogin();
   const systems = [
+    // 公司正式的活動進度表（Google 試算表）；用活動與任務追蹤的角色決定誰看得到。
+    { id:"progress-tracker", role:"activity-tracker", repo:false, category:"專案與活動", name:"活動進度追蹤", description:"活動總表、各活動工作進度、燈號、今日追蹤與年度人力配置。", keywords:"進度 燈號 逾期 卡關 工作進度 活動總表 今日追蹤 人力配置", url:"https://docs.google.com/spreadsheets/d/1Fckp1WwVp8WM7d3tuu-yNyXviDVBn1zr0huhHiJTAP8/edit", action:"開啟進度追蹤表" },
     { id:"activity-tracker", managed:true, category:"專案與活動", name:"活動與任務追蹤", description:"專案進度、週會紀錄、待辦追蹤及供應商檔期。", keywords:"專案 待辦 逾期 週會 會議 里程碑 供應商 檔期", url:"https://script.google.com/macros/s/AKfycbwGMLc7AFXxOEufGnTfFmbZbzLQkudfONS9dzseTQBITEcSNQ3zEXqfw4SLP0Ca2yxj9Q/exec" },
     { id:"event-mobile-checkin-pages", category:"專案與活動", name:"活動行動報到", description:"現場掃碼、名單查詢、識別證及領取登記。", keywords:"QR 簽到 午餐 伴手禮", path:"event-mobile-checkin-pages" },
     { id:"speaker-platform", managed:true, category:"專案與活動", name:"講師接待", description:"航班、住宿、簡報、公告及服務需求。", keywords:"講者 貴賓 接機", path:"speaker-platform" },
@@ -192,7 +194,7 @@
     { id:"personnel", role:"resource", repo:"resource", category:"人力與出勤", name:"派遣人員管理", description:"派遣與工讀名冊、區域、合約期間、時薪及評價。", keywords:"派遣 工讀 人力 名冊 時薪", path:"resource", hash:"personnel" },
     { id:"sops", role:"resource", repo:"resource", category:"業務與資源", name:"SOP 標準作業", description:"各類活動與行政的標準作業程序與檔案。", keywords:"SOP 作業程序 手冊 流程", path:"resource", hash:"sops" },
     { id:"suppliers", role:"activity-tracker", repo:"total-system", category:"業務與資源", name:"供應商管理", description:"全公司唯一的供應商名單：類別、服務項目、統編、聯絡人與評價。", keywords:"供應商 廠商 統編 外包 評價", path:"total-system/suppliers" },
-    { id:"tender", repo:"total-system", category:"業務與資源", name:"標案管理", description:"評估、準備、投標到開標結果，得標一鍵轉成專案。", keywords:"標案 投標 採購 截標 開標 押標金 得標", path:"total-system/tenders", managed:true },
+    { id:"tender", repo:"total-system", category:"業務與資源", name:"標案管理", description:"評估、準備、投標到開標結果，得標一鍵轉到活動總表。", keywords:"標案 投標 採購 截標 開標 押標金 得標", path:"total-system/tenders", managed:true },
     { id:"tender-alert", category:"業務與資源", name:"標案快報", description:"政府採購公告篩選及通知。", keywords:"採購 投標 商機", url:"https://github.com/imprjoseph/tender-alert/actions", action:"查看快報紀錄" },
     { id:"ckd2026-poster-registration", category:"專用系統", name:"壁報競賽", description:"參賽報名、補件、書審及評分。", keywords:"學會 競賽", path:"ckd2026-poster-registration" },
     { id:"ai-design", managed:true, repo:false, category:"專用系統", name:"AI 平面設計", description:"以 AI 產出活動主視覺、海報與社群圖文。", keywords:"設計 海報 KV 主視覺 社群 圖片 AI" },
@@ -344,6 +346,7 @@
   const WORKBENCH_API = "https://script.google.com/macros/s/AKfycbyAUBGqD8ekrTyhMDfV0w0TMvljijG8CDmU8OIrGImPDCACvgrjl9QXv2q_dyi4arGq/exec";
   const WORKBENCH_LIST_SIZE = 6;
   const eventOpsUrl = systems.find(system => system.id === "activity-tracker").url;
+  const trackerUrl = systems.find(system => system.id === "progress-tracker").url;
 
   function el(tag, className, text) {
     const node = document.createElement(tag);
@@ -380,7 +383,7 @@
     return list;
   }
 
-  function panel(title, stats, body, total) {
+  function panel(title, stats, body, total, moreUrl) {
     const box = el("div", "wb-panel");
     box.append(el("h3", null, title));
     if (stats.length) {
@@ -391,7 +394,7 @@
     box.append(body);
     if (total > WORKBENCH_LIST_SIZE) {
       const more = el("a", "wb-more", "查看全部 " + total + " 筆 ↗");
-      more.href = eventOpsUrl;
+      more.href = moreUrl || eventOpsUrl;
       more.target = "_blank";
       more.rel = "noopener noreferrer";
       box.append(more);
@@ -415,13 +418,36 @@
     const actionStats = [["未完成 " + c.myOpen]];
     if (c.myOverdue) actionStats.push(["逾期 " + c.myOverdue, true]);
     if (c.myDueThisWeek) actionStats.push(["本週到期 " + c.myDueThisWeek]);
+    // 公司進度以「活動進度追蹤」試算表為準，放最前面；活動與任務追蹤的待辦有資料才顯示。
+    const trackerStats = [["未完成 " + c.trackerOpen]];
+    if (c.trackerOverdue) trackerStats.push(["逾期 " + c.trackerOverdue, true]);
+    if (c.trackerDueThisWeek) trackerStats.push(["本週到期 " + c.trackerDueThisWeek]);
+    const trackerTasks = data.trackerTasks || [];
+    const trackerEvents = data.trackerEvents || [];
+    const toTracker = link => { link.href = trackerUrl; };
     body.replaceChildren(
-      panel("我的待辦", actionStats, itemList(data.myActions, (a, link) => {
+      panel("我的工作（活動進度追蹤）", data.trackerError ? [] : trackerStats, data.trackerError
+        ? el("p", "wb-empty", "進度追蹤表暫時讀不到：" + data.trackerError)
+        : itemList(trackerTasks, (t, link) => {
+          toTracker(link);
+          link.append(el("span", "wb-title", t.title));
+          const meta = el("span", "wb-meta");
+          meta.append(el("span", t.overdue ? "late" : null, t.due_date ? dueLabel(t.due_date, data.today) : "沒有截止日"),
+            "・" + [t.event_name, t.status, t.next_step && "下一步：" + t.next_step].filter(Boolean).join("・"));
+          link.append(meta);
+        }, "追蹤表裡沒有你負責、還沒完成的工作。"), c.trackerOpen, trackerUrl),
+      ...(trackerEvents.length ? [panel("我是 PM 的活動", [], itemList(trackerEvents, (e, link) => {
+        toTracker(link);
+        link.append(el("span", "wb-title", e.name));
+        link.append(el("span", "wb-meta", [e.activity_date ? shortDate(e.activity_date) : "日期未定", e.stage, e.light,
+          e.total ? "完成 " + e.done + "/" + e.total : ""].filter(Boolean).join("・")));
+      }, ""), trackerEvents.length, trackerUrl)] : []),
+      ...(data.myActions.length ? [panel("我的待辦", actionStats, itemList(data.myActions, (a, link) => {
         link.append(el("span", "wb-title", a.title));
         const meta = el("span", "wb-meta");
         meta.append(el("span", a.overdue ? "late" : null, dueLabel(a.due_date, data.today)), "・" + a.project_name);
         link.append(meta);
-      }, "目前沒有指派給你的待辦。"), c.myOpen),
+      }, ""), c.myOpen)] : []),
       ...(data.myTenders && data.myTenders.length ? [panel("標案截標", [["14 天內 " + data.myTenders.length, data.myTenders.some(t => t.overdue)]],
         itemList(data.myTenders, (t, link) => {
           link.href = "../tenders/";
@@ -430,8 +456,8 @@
           meta.append(el("span", t.overdue ? "late" : null, t.overdue ? "已過截標" : "截標 " + dueLabel(t.deadline_date, data.today)), "・" + t.agency);
           link.append(meta);
         }, ""), data.myTenders.length)] : []),
-      panel("我負責的專案", [], itemList(data.myProjects, projectItem(data.today), "目前沒有你負責的進行中專案。"), data.myProjects.length),
-      panel("本週活動", [], itemList(data.eventsThisWeek, projectItem(data.today), "這 7 天內沒有活動。"), data.eventsThisWeek.length),
+      ...(data.myProjects.length ? [panel("我負責的專案", [], itemList(data.myProjects, projectItem(data.today), ""), data.myProjects.length)] : []),
+      ...(data.eventsThisWeek.length ? [panel("本週活動", [], itemList(data.eventsThisWeek, projectItem(data.today), ""), data.eventsThisWeek.length)] : []),
     );
   }
 

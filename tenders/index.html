@@ -25,7 +25,7 @@
   <section class="hero">
     <div>
       <h1>標案管理</h1>
-      <p>從公告評估、準備文件、投標到開標結果；得標後一鍵轉成專案。新公告請看 <a class="linkish" style="color:#fff" href="https://github.com/imprjoseph/tender-alert/actions" target="_blank" rel="noopener noreferrer">標案快報 ↗</a></p>
+      <p>從公告評估、準備文件、投標到開標結果；得標後一鍵轉到「活動進度追蹤」的活動總表。新公告請看 <a class="linkish" style="color:#fff" href="https://github.com/imprjoseph/tender-alert/actions" target="_blank" rel="noopener noreferrer">標案快報 ↗</a></p>
     </div>
     <button class="btn light" type="button" id="add">＋ 新增標案</button>
   </section>
@@ -102,19 +102,17 @@
 
 <dialog id="convert" aria-labelledby="cv-title">
   <form id="cv-form" method="dialog">
-    <div class="dlg-head"><h2 id="cv-title">轉成專案</h2><button type="button" class="x" id="cv-close" aria-label="關閉">×</button></div>
+    <div class="dlg-head"><h2 id="cv-title">轉成活動</h2><button type="button" class="x" id="cv-close" aria-label="關閉">×</button></div>
     <div class="dlg-body">
       <p class="hint" id="cv-hint"></p>
       <div class="grid2">
-        <div class="field"><label for="cv-type">活動類型 *</label><input id="cv-type" list="types" required placeholder="選擇或輸入">
-          <datalist id="types"><option value="論壇"><option value="研討會"><option value="記者會"><option value="展覽"><option value="頒獎典禮"><option value="尾牙"><option value="其他"></datalist></div>
-        <div class="field"><label for="cv-venue">地點</label><input id="cv-venue"></div>
-        <div class="field"><label for="cv-start">開始日 *</label><input id="cv-start" type="date" required></div>
-        <div class="field"><label for="cv-end">結束日 *</label><input id="cv-end" type="date" required></div>
+        <div class="field"><label for="cv-pm">PM *</label><select id="cv-pm" required></select></div>
+        <div class="field"><label for="cv-date">活動日期</label><input id="cv-date" type="date"></div>
       </div>
+      <p class="hint">活動日期還沒定可以先空白，之後在追蹤表補上。</p>
       <p class="msg" id="cv-msg" role="alert"></p>
     </div>
-    <div class="dlg-foot"><span class="spacer"></span><button type="button" class="btn" id="cv-cancel">取消</button><button type="submit" class="btn primary" id="cv-save">建立專案</button></div>
+    <div class="dlg-foot"><span class="spacer"></span><button type="button" class="btn" id="cv-cancel">取消</button><button type="submit" class="btn primary" id="cv-save">新增到活動總表</button></div>
   </form>
 </dialog>
 
@@ -226,7 +224,7 @@
       name.append(el("b", null, t.title), el("small", null, [t.agency, t.tender_no].filter(Boolean).join("・")));
       const state = el("td");
       state.append(el("span", "chip s-" + t.status, STATUS[t.status] || t.status));
-      if (t.project_id) state.append(el("small", null, " 已轉專案"));
+      if (t.project_id) state.append(el("small", null, " 已轉活動 " + t.project_id));
       tr.append(name, deadlineCell(t), el("td", "num hide-sm", money(t.budget_amount)), el("td", "hide-sm", ownerName(t.owner_email)), state);
       tr.addEventListener("click", () => openDialog(t));
       tr.addEventListener("keydown", e => { if (e.key === "Enter") openDialog(t); });
@@ -250,6 +248,8 @@
     return !t || isManager || (!!myEmail && String(t.owner_email || "").toLowerCase() === myEmail);
   }
   let myEmail = "";
+  let pmOptions = [];
+  let trackerUrl = "https://docs.google.com/spreadsheets/d/1Fckp1WwVp8WM7d3tuu-yNyXviDVBn1zr0huhHiJTAP8/edit";
 
   function openDialog(t) {
     editing = t;
@@ -270,13 +270,21 @@
         actions.append(b);
       });
       if (t.status === "won" && !t.project_id) {
-        const b = el("button", "btn primary", "轉成專案");
+        const b = el("button", "btn primary", "轉成活動");
         b.type = "button";
         b.addEventListener("click", openConvert);
         actions.append(b);
       }
     }
-    if (t && t.project_id) actions.append(el("span", "hint", "已轉成專案，請到「活動與任務追蹤」追蹤執行。"));
+    if (t && t.project_id) {
+      const hint = el("span", "hint", "已新增到活動總表（" + t.project_id + "），請到 ");
+      const link = el("a", "linkish", "活動進度追蹤 ↗");
+      link.href = trackerUrl;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      hint.append(link, " 建立工作分頁、追蹤執行。");
+      actions.append(hint);
+    }
     if (t && !editable) actions.append(el("span", "hint", "只有負責人或主管可以修改。"));
     $("#dlg").showModal();
   }
@@ -340,21 +348,27 @@
   }
 
   function openConvert() {
-    $("#cv-hint").textContent = "會建立專案「" + editing.title + "」，客戶：" + editing.agency + "，負責人沿用標案負責人。";
+    $("#cv-hint").textContent = "會在活動總表新增「" + editing.title + "」，客戶：" + editing.agency + "，執行階段為「規劃中」。";
     $("#cv-msg").textContent = "";
+    // PM 選單用追蹤表「設定」的人員姓名，名字跟追蹤表一致，工作台才對得到人。
+    const names = pmOptions.includes(viewer.name) || !viewer.name ? pmOptions : pmOptions.concat(viewer.name);
+    $("#cv-pm").replaceChildren(el("option", null, "請選擇"), ...names.map(n => { const o = el("option", null, n); o.value = n; return o; }));
+    $("#cv-pm").firstChild.value = "";
+    $("#cv-pm").value = names.includes(viewer.name) ? viewer.name : "";
+    $("#cv-date").value = "";
     $("#convert").showModal();
   }
 
   $("#cv-form").addEventListener("submit", e => {
     e.preventDefault();
     withBusy($("#cv-save"), $("#cv-msg"), async () => {
-      const project = { project_type: $("#cv-type").value.trim(), start_date: $("#cv-start").value, end_date: $("#cv-end").value };
-      if ($("#cv-venue").value.trim()) project.venue = $("#cv-venue").value.trim();
+      const project = { pm_name: $("#cv-pm").value };
+      if ($("#cv-date").value) project.activity_date = $("#cv-date").value;
       const r = await EventApi.call("tender.convertToProject", { id: editing.id, expectedUpdatedAt: editing.updated_at, project });
       replaceTender(r.tender);
       $("#convert").close();
       openDialog(r.tender);
-      toast("已建立專案「" + r.project.name + "」");
+      toast("已新增到活動總表：" + r.event.event_id);
     });
   });
 
@@ -362,6 +376,8 @@
     const data = await EventApi.call("tender.list");
     tenders = data.tenders;
     myEmail = String(data.myEmail || "").toLowerCase();
+    pmOptions = data.pmOptions || [];
+    trackerUrl = data.trackerUrl || trackerUrl;
     render();
   }
 
