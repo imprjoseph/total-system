@@ -147,6 +147,16 @@ test('verify：有角色回傳角色，沒角色 FORBIDDEN，未知系統 VALIDA
   assert.strictEqual(post({ action: 'verify', token, system: 'nope' }).error.code, 'VALIDATION');
 });
 
+test('帳號中心管理員在新公司系統（office）自動是 admin；一般同仁與派遣不會', () => {
+  const { post } = makeContext();
+  const boss = post({ action: 'login', account: 'boss', password: 'boss123' }).data.token;
+  assert.strictEqual(post({ action: 'verify', token: boss, system: 'office' }).data.role, 'admin');
+  const amy = post({ action: 'login', account: 'amy', password: '0123ab' }).data.token;
+  assert.strictEqual(post({ action: 'verify', token: amy, system: 'office' }).error.code, 'FORBIDDEN');
+  const pt = post({ action: 'login', account: 'pt01', password: 'ptpass1' }).data.token;
+  assert.strictEqual(post({ action: 'verify', token: pt, system: 'office' }).error.code, 'FORBIDDEN');
+});
+
 test('改密碼：舊密碼錯拒絕；太短拒絕；成功後新密碼可登入、舊密碼不行', () => {
   const { post, writes } = makeContext();
   const { token } = post({ action: 'login', account: 'bob', password: 'secret1' }).data;

@@ -236,6 +236,9 @@ function publicUser_(row) {
     const role = String(row[s] == null ? '' : row[s]).trim();
     if (role) roles[s] = role;
   });
+  const admin = !!row.admin && type !== ACCOUNT_TYPES.DISPATCH;
+  // 帳號中心管理員在新公司系統自動是 admin（office 欄沒填也一樣），不必再到每個系統各設一次。
+  if (admin && !roles.office) roles.office = 'admin';
   return {
     // 一律小寫：各系統用帳號對應主管、負責人，大小寫不同就會對不上
     account: normAccount_(row.account),
@@ -245,7 +248,7 @@ function publicUser_(row) {
     manager: normAccount_(row.manager),
     type,
     // 派遣帳號就算在試算表被勾了 admin 也不生效。
-    admin: !!row.admin && type !== ACCOUNT_TYPES.DISPATCH,
+    admin,
     roles,
   };
 }
