@@ -178,6 +178,8 @@
   // 入口網站本身就要登入：只有登入後才知道這個人能用哪些系統。
   const viewer = ImprSSO.requireLogin();
   const systems = [
+    // 新公司系統（試用中）：專案、標案、預算毛利、請款、考勤、派遣、資材、AI 一站整合；角色看帳號中心的 office 欄。
+    { id:"office", managed:true, category:"公司系統", name:"imPR 公司系統（新）", description:"專案與工作追蹤、標案、預算毛利、請款報帳、考勤、派遣、資材與 AI，一個網站全部整合。試用中，舊系統照常使用。", keywords:"新系統 公司系統 專案 標案 預算 毛利 請款 報帳 考勤 打卡 派遣 資材 AI", path:"impr-office", action:"開啟新系統" },
     // 公司正式的活動進度表（Google 試算表）；用活動與任務追蹤的角色決定誰看得到。
     { id:"progress-tracker", role:"activity-tracker", repo:false, category:"專案與活動", name:"活動進度追蹤", description:"活動總表、各活動工作進度、燈號、今日追蹤與年度人力配置。", keywords:"進度 燈號 逾期 卡關 工作進度 活動總表 今日追蹤 人力配置", url:"https://docs.google.com/spreadsheets/d/1Fckp1WwVp8WM7d3tuu-yNyXviDVBn1zr0huhHiJTAP8/edit", action:"開啟進度追蹤表" },
     { id:"activity-tracker", managed:true, category:"專案與活動", name:"活動與任務追蹤", description:"專案進度、週會紀錄、待辦追蹤及供應商檔期。", keywords:"專案 待辦 逾期 週會 會議 里程碑 供應商 檔期", url:"https://script.google.com/macros/s/AKfycbwGMLc7AFXxOEufGnTfFmbZbzLQkudfONS9dzseTQBITEcSNQ3zEXqfw4SLP0Ca2yxj9Q/exec" },

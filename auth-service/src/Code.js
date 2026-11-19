@@ -25,7 +25,8 @@ const BASE_COLUMNS = ['account', 'password', 'name', 'email', 'dept', 'manager',
  * 限制做在帳號中心（角色過濾、verify 拒絕），不只靠入口網站隱藏，否則知道網址就能直接進其他系統。
  */
 const ACCOUNT_TYPES = { STAFF: '正職', DISPATCH: '派遣' };
-const DISPATCH_SYSTEMS = ['PT-member'];
+// office：新的公司系統，派遣人員在裡面只看得到自己的派遣功能（見 impr-office Auth.js）。
+const DISPATCH_SYSTEMS = ['PT-member', 'office'];
 /**
  * 每個系統一欄角色，欄名就是入口網站上的系統 id；空白代表不能使用該系統。
  * 角色值限定在 roles 清單內：沿用各系統原本的角色名稱，之後各系統改用帳號中心時可以直接對應，
@@ -42,6 +43,8 @@ const SYSTEMS = [
   { id: 'ai-design', name: 'AI 平面設計', roles: ['admin', 'designer', 'staff'] },
   // admin / manager 可改所有標案；staff 只能改自己負責的（見 event-ops TenderService）
   { id: 'tender', name: '標案管理', roles: ['admin', 'manager', 'staff'] },
+  // 新的公司系統（impr-office）：accountant 付款與看全部預算，dispatch 是派遣人員。
+  { id: 'office', name: 'imPR 公司系統', roles: ['admin', 'manager', 'accountant', 'staff', 'dispatch'] },
 ];
 const SYSTEM_COLUMNS = SYSTEMS.map(s => s.id);
 
@@ -139,7 +142,7 @@ function directory_(token, system) {
   const users = readAccounts_().rows.filter(r => r.active).map(publicUser_)
     .filter(u => u.roles[system])
     .map(u => full
-      ? { account: u.account, name: u.name, email: u.email, dept: u.dept, manager: u.manager, role: u.roles[system] }
+      ? { account: u.account, name: u.name, email: u.email, dept: u.dept, manager: u.manager, type: u.type, role: u.roles[system] }
       : { account: u.account, name: u.name, dept: u.dept, role: u.roles[system] });
   return { system, users };
 }

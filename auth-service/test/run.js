@@ -314,7 +314,7 @@ test('[名單] 系統管理員可讀該系統人員名單：只含有角色、�
   assert.ok(r.ok, JSON.stringify(r));
   assert.deepStrictEqual(r.data.users.map(u => u.account).sort(), ['amy', 'boss']);
   const amy = r.data.users.find(u => u.account === 'amy');
-  assert.deepStrictEqual({ ...amy }, { account: 'amy', name: '王小美', email: 'amy@example.com', dept: '專案部', manager: 'boss', role: 'staff' });
+  assert.deepStrictEqual({ ...amy }, { account: 'amy', name: '王小美', email: 'amy@example.com', dept: '專案部', manager: 'boss', type: '正職', role: 'staff' });
 });
 
 test('[名單] 一般同仁只拿到帳號、姓名、部門、角色，沒有 email 與主管', () => {
