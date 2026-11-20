@@ -47,6 +47,8 @@ const SYSTEMS = [
   { id: 'office', name: 'imPR 公司系統', roles: ['admin', 'manager', 'accountant', 'staff', 'dispatch'] },
 ];
 const SYSTEM_COLUMNS = SYSTEMS.map(s => s.id);
+// directory 回傳全部啟用帳號（不只有角色的）的系統
+const FULL_DIRECTORY_SYSTEMS = ['office'];
 
 class AuthError extends Error {
   constructor(code, message) {
@@ -139,11 +141,14 @@ function directory_(token, system) {
   const myRole = me.roles[system];
   if (!myRole) throw new AuthError('FORBIDDEN', '你沒有這個系統的使用權限，請聯絡管理者');
   const full = myRole === 'admin' || myRole === 'manager';
+  // 新公司系統（office）的人員資料是全公司的人事資料：所有啟用中的帳號都給（沒開通的 role 是空白，登入仍會被擋）；
+  // 其他系統只給有該系統角色的人。
+  const allStaff = FULL_DIRECTORY_SYSTEMS.indexOf(system) !== -1;
   const users = readAccounts_().rows.filter(r => r.active).map(publicUser_)
-    .filter(u => u.roles[system])
+    .filter(u => allStaff || u.roles[system])
     .map(u => full
-      ? { account: u.account, name: u.name, email: u.email, dept: u.dept, manager: u.manager, type: u.type, role: u.roles[system] }
-      : { account: u.account, name: u.name, dept: u.dept, role: u.roles[system] });
+      ? { account: u.account, name: u.name, email: u.email, dept: u.dept, manager: u.manager, type: u.type, role: u.roles[system] || '' }
+      : { account: u.account, name: u.name, dept: u.dept, role: u.roles[system] || '' });
   return { system, users };
 }
 

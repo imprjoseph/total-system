@@ -157,6 +157,17 @@ test('帳號中心管理員在新公司系統（office）自動是 admin；一�
   assert.strictEqual(post({ action: 'verify', token: pt, system: 'office' }).error.code, 'FORBIDDEN');
 });
 
+test('directory：office 給全部啟用帳號（沒開通的 role 空白），其他系統只給有角色的', () => {
+  const { post } = makeContext();
+  const boss = post({ action: 'login', account: 'boss', password: 'boss123' }).data.token;
+  const office = post({ action: 'directory', token: boss, system: 'office' }).data.users;
+  assert.deepStrictEqual(office.map(u => u.account).sort(), ['amy', 'bob', 'boss', 'pt01']);
+  assert.strictEqual(office.find(u => u.account === 'amy').role, '');
+  assert.strictEqual(office.find(u => u.account === 'boss').role, 'admin');
+  const att = post({ action: 'directory', token: boss, system: 'impr-attendance' }).data.users;
+  assert.deepStrictEqual(att.map(u => u.account).sort(), ['amy', 'boss']);
+});
+
 test('改密碼：舊密碼錯拒絕；太短拒絕；成功後新密碼可登入、舊密碼不行', () => {
   const { post, writes } = makeContext();
   const { token } = post({ action: 'login', account: 'bob', password: 'secret1' }).data;
